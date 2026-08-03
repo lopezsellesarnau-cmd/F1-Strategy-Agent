@@ -27,7 +27,7 @@ INK = "#151412"
 ACCENT = "#C1663D"
 LINE = "rgba(21,20,18,0.16)"
 COMPOUND_COLOR = {"SOFT": "#C1663D", "MEDIUM": "#B8433F", "HARD": "#151412"}
-STRATEGY_COLOR = ["#C1663D", "#B8433F", "#151412", "#5A6B8C"]
+STRATEGY_COLOR = ["#C1663D", "#B8433F", "#151412", "#5A6B8C", "#3F7A4E"]
 
 MAE_BASELINE_V1 = 3.49  # compound-mean, train=Jeddah+Bahrain, test=Miami (baselinec2.py)
 
