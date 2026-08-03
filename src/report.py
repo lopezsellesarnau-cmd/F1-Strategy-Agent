@@ -185,109 +185,203 @@ legend_html = "\n".join(
     for name, total, color, dur in car_rows
 )
 
+# Distance-marker ticks along both straights — purely decorative, gives the
+# track a "blueprint" feel instead of a bare rounded rectangle.
+ticks_svg = "\n".join(
+    f'<line x1="{x}" y1="33" x2="{x}" y2="47" stroke="{INK}" stroke-opacity="0.25" stroke-width="2" />\n'
+    f'<line x1="{x}" y1="233" x2="{x}" y2="247" stroke="{INK}" stroke-opacity="0.25" stroke-width="2" />'
+    for x in range(160, 780, 60)
+)
+
+# Callouts (dot + leader line + label) in the same language as an
+# engineering exploded-view diagram: TURN 1 / TURN 2 / START-FINISH.
+callouts_svg = f"""
+  <circle cx="850.7" cy="69.3" r="3" fill="{ACCENT}" />
+  <line x1="850.7" y1="69.3" x2="900" y2="10" stroke="{ACCENT}" stroke-width="1.5" />
+  <text x="855" y="4" font-family="'IBM Plex Mono', monospace" font-size="13" fill="{INK}" letter-spacing="1">TURN 1</text>
+
+  <circle cx="49.3" cy="210.7" r="3" fill="{ACCENT}" />
+  <line x1="49.3" y1="210.7" x2="10" y2="300" stroke="{ACCENT}" stroke-width="1.5" />
+  <text x="15" y="304" font-family="'IBM Plex Mono', monospace" font-size="13" fill="{INK}" letter-spacing="1">TURN 2</text>
+
+  <circle cx="120" cy="40" r="3" fill="{INK}" />
+  <line x1="120" y1="40" x2="120" y2="-25" stroke="{INK}" stroke-width="1.5" />
+  <text x="120" y="-33" font-family="'IBM Plex Mono', monospace" font-size="13" fill="{INK}" letter-spacing="1" text-anchor="middle">START / FINISH</text>
+"""
+
 html = f"""<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
 <title>F1 Strategy Agent — model report</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
   * {{ box-sizing: border-box; }}
+  html, body {{ margin: 0; padding: 0; }}
   body {{
-    margin: 0; padding: 0;
     background: {BONE}; color: {INK};
     font-family: 'IBM Plex Mono', ui-monospace, monospace;
     letter-spacing: -0.011em;
   }}
-  .wrap {{ max-width: 1360px; margin: 0 auto; padding: 40px 32px 96px; }}
-  h1 {{ font-size: 28px; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 6px; }}
-  .sub {{ color: rgba(21,20,18,0.6); font-size: 13px; margin: 0 0 32px; max-width: 74ch; }}
+
+  /* ── Top ticker — same device as a classified-doc header strip ── */
+  .ticker {{
+    display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    background: {INK}; color: {BONE}; padding: 8px 24px;
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em;
+  }}
+  .ticker span {{ opacity: 0.85; }}
+
+  .page {{ display: flex; max-width: 1420px; margin: 0 auto; }}
+
+  /* ── Left rail — rotated label, same move as a spec-sheet side band ── */
+  .rail {{
+    writing-mode: vertical-rl; transform: rotate(180deg);
+    background: {ACCENT}; color: {BONE};
+    flex-shrink: 0; width: 44px;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; font-weight: 600;
+  }}
+
+  .wrap {{ flex: 1; min-width: 0; padding: 28px 32px 96px; }}
+
+  /* ── Header meta bar — mirrors the "P1 INDUSTRIAL ROBOT / SERIAL NO." row ── */
+  .meta-bar {{
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+    border-bottom: 2px solid {INK}; padding-bottom: 10px; margin-bottom: 28px;
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; color: rgba(21,20,18,0.6);
+  }}
+
+  h1 {{ font-size: 34px; font-weight: 700; letter-spacing: -0.02em; margin: 0 0 8px; }}
+  .sub {{ color: rgba(21,20,18,0.62); font-size: 13px; margin: 0 0 32px; max-width: 78ch; line-height: 1.5; }}
   h2 {{
-    font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em;
-    color: rgba(21,20,18,0.68); margin: 40px 0 14px; border-bottom: 1px solid {LINE};
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.16em; font-weight: 600;
+    color: {INK}; margin: 44px 0 14px; border-bottom: 2px solid {INK};
     padding-bottom: 10px;
   }}
-  .metric-row {{ display: flex; gap: 14px; flex-wrap: wrap; }}
+
+  .metric-row {{ display: flex; gap: 0; flex-wrap: wrap; border: 2px solid {INK}; border-right: none; }}
   .metric {{
-    border: 1px solid {LINE}; background: #fff; padding: 16px 18px; flex: 1; min-width: 220px;
+    border-right: 2px solid {INK}; background: #fff; padding: 16px 18px; flex: 1; min-width: 240px;
   }}
-  .metric .label {{ font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: rgba(21,20,18,0.6); }}
-  .metric .value {{ font-size: 26px; font-weight: 500; margin-top: 8px; }}
+  .metric .label {{ font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(21,20,18,0.6); }}
+  .metric .value {{ font-size: 30px; font-weight: 700; margin-top: 10px; font-variant-numeric: tabular-nums; }}
+  .metric.win {{ background: {INK}; }}
+  .metric.win .label {{ color: rgba(240,238,233,0.65); }}
   .metric.win .value {{ color: {ACCENT}; }}
+
   .charts {{ display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }}
-  @media (max-width: 860px) {{ .charts {{ grid-template-columns: 1fr; }} }}
-  img {{ width: 100%; border: 1px solid {LINE}; background: #fff; display: block; }}
-  .track-card {{ border: 1px solid {LINE}; background: #fff; padding: 20px; }}
+  @media (max-width: 860px) {{ .charts {{ grid-template-columns: 1fr; }} .page {{ flex-direction: column; }} .rail {{ writing-mode: horizontal-tb; transform: none; width: auto; height: 32px; }} }}
+  .chart-label {{
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: rgba(21,20,18,0.6);
+    margin: 0 0 8px; border-top: 2px solid {INK}; padding-top: 8px;
+  }}
+  img {{ width: 100%; border: 2px solid {INK}; background: #fff; display: block; }}
+
+  /* ── Corner-bracket frame — the viewfinder-corner trick from the ref shots ── */
+  .frame {{ position: relative; border: 2px solid {INK}; background: #fff; padding: 24px; }}
+  .cnr {{ position: absolute; width: 16px; height: 16px; pointer-events: none; }}
+  .cnr-tl {{ top: -2px; left: -2px; border-top: 3px solid {ACCENT}; border-left: 3px solid {ACCENT}; }}
+  .cnr-tr {{ top: -2px; right: -2px; border-top: 3px solid {ACCENT}; border-right: 3px solid {ACCENT}; }}
+  .cnr-bl {{ bottom: -2px; left: -2px; border-bottom: 3px solid {ACCENT}; border-left: 3px solid {ACCENT}; }}
+  .cnr-br {{ bottom: -2px; right: -2px; border-bottom: 3px solid {ACCENT}; border-right: 3px solid {ACCENT}; }}
+
   .track-svg {{ width: 100%; height: auto; }}
-  .legend {{ display: flex; flex-wrap: wrap; gap: 16px; margin-top: 14px; font-size: 12px; }}
+  .legend {{ display: flex; flex-wrap: wrap; gap: 18px; margin-top: 18px; padding-top: 14px; border-top: 1px solid {LINE}; font-size: 12px; }}
   .legend-item {{ display: flex; align-items: center; gap: 8px; }}
   .swatch {{ width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0; margin-right: 8px; }}
-  table {{ width: 100%; border-collapse: collapse; font-size: 13px; background: #fff; border: 1px solid {LINE}; margin-top: 16px; }}
-  th, td {{ text-align: left; padding: 10px 14px; border-bottom: 1px solid {LINE}; }}
-  th {{ font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(21,20,18,0.6); }}
+
+  table {{ width: 100%; border-collapse: collapse; font-size: 13px; background: #fff; border: 2px solid {INK}; margin-top: 16px; }}
+  th {{
+    text-align: left; padding: 10px 14px; background: {INK}; color: {BONE};
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 500;
+  }}
+  td {{ text-align: left; padding: 10px 14px; border-bottom: 1px solid {LINE}; }}
   td.num {{ text-align: right; font-variant-numeric: tabular-nums; }}
-  tr.best {{ background: rgba(193,102,61,0.07); font-weight: 600; }}
+  tr.best {{ background: rgba(193,102,61,0.08); font-weight: 600; }}
   .chip {{
     display: inline-block; font-size: 9px; background: {ACCENT}; color: {BONE};
-    padding: 2px 6px; border-radius: 2px; margin-left: 6px; letter-spacing: 0.08em;
+    padding: 2px 6px; margin-left: 6px; letter-spacing: 0.08em;
   }}
-  footer {{ margin-top: 56px; font-size: 11px; color: rgba(21,20,18,0.5); }}
+  footer {{
+    margin-top: 56px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em;
+    color: rgba(21,20,18,0.5); border-top: 2px solid {INK}; padding-top: 12px;
+  }}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>F1 Strategy Agent</h1>
-  <p class="sub">Lap-time model + pit-stop strategy simulation · trained on Jeddah + Bahrain 2023, evaluated on Miami 2023</p>
+<div class="ticker">
+  <span>TRAINED — JEDDAH + BAHRAIN GP 2023</span>
+  <span>F1 STRATEGY AGENT — LAP-TIME MODEL</span>
+  <span>&gt;&gt;&gt; EVALUATED — MIAMI GP 2023</span>
+</div>
 
-  <h2>Model performance</h2>
-  <div class="metric-row">
-    <div class="metric">
-      <div class="label">v1 — mean lap time by compound</div>
-      <div class="value">{MAE_BASELINE_V1:.2f}s MAE</div>
+<div class="page">
+  <div class="rail">MODEL REPORT</div>
+
+  <div class="wrap">
+    <div class="meta-bar">
+      <span>F1-Strategy-Agent / src/report.py</span>
+      <span>Source: FastF1 · 2023 season</span>
     </div>
-    <div class="metric win">
-      <div class="label">v2 — Compound + TyreLife + LapNumber, delta to circuit baseline</div>
-      <div class="value">{mae_v2:.2f}s MAE</div>
+
+    <h1>Lap-Time Model &amp; Pit Strategy Simulation</h1>
+    <p class="sub">A RandomForest model predicts lap time from tyre compound, tyre wear and lap number — trained on two Grand Prix, evaluated on a third it never saw. The result feeds a pit-stop strategy simulation on the test circuit.</p>
+
+    <h2>Model performance</h2>
+    <div class="metric-row">
+      <div class="metric">
+        <div class="label">v1 — mean lap time by compound</div>
+        <div class="value">{MAE_BASELINE_V1:.2f}s MAE</div>
+      </div>
+      <div class="metric win">
+        <div class="label">v2 — Compound + TyreLife + LapNumber, delta to circuit baseline</div>
+        <div class="value">{mae_v2:.2f}s MAE</div>
+      </div>
     </div>
+
+    <h2>Pit strategy simulation — Miami 2023 ({TOTAL_LAPS} laps)</h2>
+    <p class="sub">Assumes the circuit's baseline pace is known ahead of time (e.g. from practice/qualifying — here taken from the real race: {miami_baseline:.2f}s). The model only predicts how far each lap drifts from that pace, based on compound and tyre wear. Each car laps the track once, at a speed proportional to its simulated total race time — first one home wins.</p>
+
+    <div class="frame">
+      <span class="cnr cnr-tl"></span><span class="cnr cnr-tr"></span>
+      <span class="cnr cnr-bl"></span><span class="cnr cnr-br"></span>
+      <svg class="track-svg" viewBox="-30 -50 980 400" xmlns="http://www.w3.org/2000/svg">
+        <path id="track" d="M120,40 L780,40 A100,100 0 0 1 780,240 L120,240 A100,100 0 0 1 120,40 Z"
+              fill="none" stroke="{INK}" stroke-opacity="0.14" stroke-width="26" stroke-linejoin="round" />
+        <path d="M120,40 L780,40 A100,100 0 0 1 780,240 L120,240 A100,100 0 0 1 120,40 Z"
+              fill="none" stroke="{BONE}" stroke-width="2" stroke-dasharray="6 6" />
+        {ticks_svg}
+        <line x1="120" y1="27" x2="120" y2="53" stroke="{INK}" stroke-width="4" />
+        {callouts_svg}
+        {cars_svg}
+      </svg>
+      <div class="legend">
+        {legend_html}
+      </div>
+    </div>
+
+    <table>
+      <thead><tr><th>Strategy</th><th>Estimated total time</th><th>Gap to best</th></tr></thead>
+      <tbody>
+        {table_rows}
+      </tbody>
+    </table>
+
+    <h2>Charts</h2>
+    <div class="charts">
+      <div>
+        <p class="chart-label">Tyre degradation by compound</p>
+        <img src="data:image/png;base64,{degradation_img}" alt="Degradation by compound" />
+      </div>
+      <div>
+        <p class="chart-label">Predicted vs. actual — Miami 2023</p>
+        <img src="data:image/png;base64,{prediction_img}" alt="Predicted vs actual" />
+      </div>
+    </div>
+
+    <footer>Generated by src/report.py &middot; F1-Strategy-Agent</footer>
   </div>
-
-  <h2>Pit strategy simulation — Miami 2023 ({TOTAL_LAPS} laps)</h2>
-  <p class="sub">Assumes the circuit's baseline pace is known ahead of time (e.g. from practice/qualifying — here taken from the real race: {miami_baseline:.2f}s). The model only predicts how far each lap drifts from that pace, based on compound and tyre wear. Each car laps the track once, at a speed proportional to its simulated total race time — first one home wins.</p>
-
-  <div class="track-card">
-    <svg class="track-svg" viewBox="0 0 900 280" xmlns="http://www.w3.org/2000/svg">
-      <path id="track" d="M120,40 L780,40 A100,100 0 0 1 780,240 L120,240 A100,100 0 0 1 120,40 Z"
-            fill="none" stroke="{INK}" stroke-opacity="0.16" stroke-width="26" stroke-linejoin="round" />
-      <path d="M120,40 L780,40 A100,100 0 0 1 780,240 L120,240 A100,100 0 0 1 120,40 Z"
-            fill="none" stroke="{BONE}" stroke-width="2" stroke-dasharray="6 6" />
-      <line x1="120" y1="27" x2="120" y2="53" stroke="{INK}" stroke-width="4" />
-      {cars_svg}
-    </svg>
-    <div class="legend">
-      {legend_html}
-    </div>
-  </div>
-
-  <table>
-    <thead><tr><th>Strategy</th><th>Estimated total time</th><th>Gap to best</th></tr></thead>
-    <tbody>
-      {table_rows}
-    </tbody>
-  </table>
-
-  <h2>Charts</h2>
-  <div class="charts">
-    <div>
-      <p class="sub" style="margin-bottom:8px;">Tyre degradation by compound</p>
-      <img src="data:image/png;base64,{degradation_img}" alt="Degradation by compound" />
-    </div>
-    <div>
-      <p class="sub" style="margin-bottom:8px;">Predicted vs. actual — Miami 2023</p>
-      <img src="data:image/png;base64,{prediction_img}" alt="Predicted vs actual" />
-    </div>
-  </div>
-
-  <footer>Generated by src/report.py · F1-Strategy-Agent</footer>
 </div>
 </body>
 </html>
