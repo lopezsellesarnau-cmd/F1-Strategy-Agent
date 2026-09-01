@@ -32,19 +32,23 @@ matplotlib.use("Agg")
 
 fastf1.Cache.enable_cache("data/cache")
 
-# Scandinavian/contemporary palette (28 ago 2026 restyle) — was a dark,
-# high-contrast "industrial spec sheet" (near-black ink, 2px borders, a
-# solid-black ticker bar and rotated side rail, viewfinder corner brackets).
-# Swapped for a lighter, airier system: warm off-white instead of near-white
-# bone, softened charcoal instead of near-black ink, hairline hitting 1px
-# borders instead of 2px, and the clay accent used sparingly (small tags,
-# one highlighted row/card) instead of as a fill color.
-BONE = "#FBFAF8"
-INK = "#232220"
-ACCENT = "#C1663D"
-LINE = "rgba(35,34,32,0.12)"
-COMPOUND_COLOR = {"SOFT": "#C1663D", "MEDIUM": "#B8433F", "HARD": "#232220"}
-STRATEGY_COLOR = ["#C1663D", "#B8433F", "#232220", "#5A6B8C", "#3F7A4E"]
+# Second restyle (1 sept 2026) — the warm Scandinavian pass (off-white bone,
+# soft rounded cards, generous whitespace) read as too soft/generic-SaaS
+# ("vibe-coded"). Pulled back toward pure black/white and borrowed some of
+# Dross's datasheet chrome (see vault Dross/00-overview.md "Dirección
+# visual": #F0F0F0 neutral ground, ink #111, alert #B8433F, 1px black rules,
+# square corners, black-header SPEC table, meta TYPE:/STATUS: tags) without
+# going back to the first version's dark ticker bar and rotated side rail.
+# Typography: SF Pro Display for headings/chrome (system stack — same move
+# as Aithority's landing, no webfont license needed), Source Serif Pro for
+# body copy (a print-y contrast to the mono data labels), IBM Plex Mono kept
+# but scoped tighter — meta tags and tabular data only.
+BONE = "#FFFFFF"
+INK = "#111111"
+ACCENT = "#B8433F"
+LINE = "rgba(17,17,17,0.14)"
+COMPOUND_COLOR = {"SOFT": "#B8433F", "MEDIUM": "#6B6B6B", "HARD": "#111111"}
+STRATEGY_COLOR = ["#B8433F", "#6B6B6B", "#111111", "#5A6B8C", "#3F7A4E"]
 
 # compound-mean, train=Jeddah+Bahrain, test=Miami (baselinec2.py)
 MAE_BASELINE_V1 = 3.49
@@ -421,85 +425,91 @@ html = f"""<!doctype html>
 <meta charset="utf-8" />
 <title>F1 Strategy Agent — model report</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Source+Serif+Pro:wght@400;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
   * {{ box-sizing: border-box; }}
   html, body {{ margin: 0; padding: 0; }}
   body {{
     background: {BONE}; color: {INK};
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, ui-sans-serif, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
     letter-spacing: -0.011em;
     -webkit-font-smoothing: antialiased;
   }}
   .mono {{ font-family: 'IBM Plex Mono', ui-monospace, monospace; letter-spacing: 0; }}
+  .serif {{ font-family: 'Source Serif Pro', Georgia, serif; letter-spacing: 0; }}
 
-  /* ── Top meta line — a quiet strip of context, not a dark banner. ── */
+  /* ── Top meta strip — Dross's TYPE:/STATUS: convention, quiet version. ── */
   .topline {{
     display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
-    max-width: 880px; margin: 0 auto; padding: 22px 32px 0;
-    font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em;
-    color: rgba(35,34,32,0.42);
+    max-width: 720px; margin: 0 auto; padding: 16px 24px 0;
+    font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em;
+    color: rgba(17,17,17,0.5);
   }}
 
-  .page {{ max-width: 880px; margin: 0 auto; padding: 18px 32px 100px; }}
+  .page {{ max-width: 720px; margin: 0 auto; padding: 10px 24px 64px; }}
 
-  h1 {{ font-size: 32px; font-weight: 600; letter-spacing: -0.025em; margin: 22px 0 10px; }}
-  .sub {{ color: rgba(35,34,32,0.6); font-size: 14.5px; margin: 0 0 36px; max-width: 68ch; line-height: 1.6; }}
+  h1 {{ font-size: 27px; font-weight: 600; letter-spacing: -0.02em; margin: 14px 0 8px; }}
+  .sub {{ font-family: 'Source Serif Pro', Georgia, serif; color: rgba(17,17,17,0.7); font-size: 15.5px; margin: 0 0 22px; max-width: 66ch; line-height: 1.55; }}
   h2 {{
-    font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600;
-    color: rgba(35,34,32,0.55); margin: 52px 0 16px;
+    font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.09em; font-weight: 600;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    color: {INK}; margin: 30px 0 12px; padding-bottom: 6px; border-bottom: 1px solid {INK};
   }}
 
-  .metric-row {{ display: flex; gap: 12px; flex-wrap: wrap; }}
+  .metric-row {{ display: flex; gap: 1px; flex-wrap: wrap; border: 1px solid {INK}; }}
   .metric {{
-    border: 1px solid {LINE}; border-radius: 12px; background: #fff;
-    padding: 18px 20px; flex: 1; min-width: 240px;
+    background: #fff; padding: 12px 14px; flex: 1; min-width: 220px;
+    border-right: 1px solid {INK};
   }}
-  .metric .label {{ font-size: 11.5px; color: rgba(35,34,32,0.55); line-height: 1.4; }}
-  .metric .value {{ font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 26px; font-weight: 500; margin-top: 12px; font-variant-numeric: tabular-nums; }}
-  .metric.win {{ border-color: {ACCENT}; box-shadow: inset 0 0 0 1px {ACCENT}; }}
-  .metric.win .label {{ color: rgba(35,34,32,0.62); }}
+  .metric:last-child {{ border-right: none; }}
+  .metric .label {{ font-family: 'Source Serif Pro', Georgia, serif; font-size: 12px; color: rgba(17,17,17,0.6); line-height: 1.35; }}
+  .metric .value {{ font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 22px; font-weight: 500; margin-top: 8px; font-variant-numeric: tabular-nums; }}
+  .metric.win {{ background: {INK}; }}
+  .metric.win .label {{ color: rgba(255,255,255,0.6); }}
   .metric.win .value {{ color: {ACCENT}; }}
 
-  .charts {{ display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }}
-  @media (max-width: 720px) {{ .charts {{ grid-template-columns: 1fr; }} }}
+  .charts {{ display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: {INK}; border: 1px solid {INK}; }}
+  @media (max-width: 640px) {{ .charts {{ grid-template-columns: 1fr; }} }}
+  .charts > div {{ background: #fff; padding: 12px; }}
   .chart-label {{
-    font-size: 11.5px; letter-spacing: 0.02em; color: rgba(35,34,32,0.55);
-    margin: 0 0 10px;
+    font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(17,17,17,0.55);
+    margin: 0 0 8px;
   }}
-  img {{ width: 100%; border: 1px solid {LINE}; border-radius: 12px; background: #fff; display: block; }}
+  img {{ width: 100%; border: none; background: #fff; display: block; }}
 
-  .frame {{ border: 1px solid {LINE}; border-radius: 16px; background: #fff; padding: 28px; box-shadow: 0 1px 2px rgba(35,34,32,0.04); }}
+  .frame {{ border: 1px solid {INK}; background: #fff; padding: 16px; }}
 
   .track-svg {{ width: 100%; height: auto; }}
-  .legend {{ display: flex; flex-wrap: wrap; gap: 18px; margin-top: 20px; padding-top: 16px; border-top: 1px solid {LINE}; font-size: 12.5px; color: rgba(35,34,32,0.75); }}
-  .legend-item {{ display: flex; align-items: center; gap: 8px; }}
-  .swatch {{ width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex-shrink: 0; margin-right: 8px; }}
+  .legend {{ display: flex; flex-wrap: wrap; gap: 16px; margin-top: 14px; padding-top: 12px; border-top: 1px solid {LINE}; font-size: 12px; color: rgba(17,17,17,0.78); }}
+  .legend-item {{ display: flex; align-items: center; gap: 7px; }}
+  .swatch {{ width: 8px; height: 8px; display: inline-block; flex-shrink: 0; margin-right: 7px; }}
 
-  table {{ width: 100%; border-collapse: collapse; font-size: 13.5px; background: #fff; border: 1px solid {LINE}; border-radius: 12px; margin-top: 16px; overflow: hidden; }}
+  table {{ width: 100%; border-collapse: collapse; font-size: 13px; background: #fff; border: 1px solid {INK}; margin-top: 14px; }}
   th {{
-    text-align: left; padding: 12px 16px; background: rgba(35,34,32,0.03); color: rgba(35,34,32,0.55);
-    font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600;
-    border-bottom: 1px solid {LINE};
+    text-align: left; padding: 9px 12px; background: {INK}; color: #fff;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 500;
   }}
-  td {{ text-align: left; padding: 12px 16px; border-bottom: 1px solid {LINE}; }}
+  td {{ text-align: left; padding: 9px 12px; border-bottom: 1px solid {LINE}; }}
   tr:last-child td {{ border-bottom: none; }}
   td.num {{ text-align: right; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }}
-  tr.best {{ background: rgba(193,102,61,0.06); font-weight: 600; }}
+  tr.best {{ background: rgba(184,67,63,0.06); font-weight: 600; }}
   .chip {{
-    display: inline-block; font-size: 9.5px; font-family: 'IBM Plex Mono', ui-monospace, monospace;
-    background: {ACCENT}; color: #fff; border-radius: 20px;
-    padding: 2px 8px; margin-left: 6px; letter-spacing: 0.06em;
+    display: inline-block; font-size: 9px; font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    background: {ACCENT}; color: #fff;
+    padding: 1px 6px; margin-left: 6px; letter-spacing: 0.06em;
   }}
   footer {{
-    margin-top: 60px; font-size: 11px; letter-spacing: 0.02em;
-    color: rgba(35,34,32,0.4); border-top: 1px solid {LINE}; padding-top: 16px;
+    margin-top: 40px; font-size: 10.5px; letter-spacing: 0.02em;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    color: rgba(17,17,17,0.42); border-top: 1px solid {INK}; padding-top: 12px;
   }}
 </style>
 </head>
 <body>
 <div class="topline mono">
-  <span>Trained — Jeddah + Bahrain GP 2023</span>
-  <span>Evaluated — Japanese GP 2023</span>
+  <span>Type: Lap-Time Model</span>
+  <span>Trained: Jeddah + Bahrain GP 2023</span>
+  <span>Status: Evaluated — Japanese GP 2023</span>
 </div>
 
 <div class="page">
@@ -524,7 +534,7 @@ html = f"""<!doctype html>
   <div class="frame">
     <svg class="track-svg" viewBox="0 0 900 600" xmlns="http://www.w3.org/2000/svg">
       <path id="track" d="{TRACK_PATH_D}"
-            fill="none" stroke="{INK}" stroke-opacity="0.09" stroke-width="26" stroke-linecap="round" stroke-linejoin="round" />
+            fill="none" stroke="{INK}" stroke-opacity="0.08" stroke-width="26" stroke-linecap="round" stroke-linejoin="round" />
       <path d="{TRACK_PATH_D}"
             fill="none" stroke="{BONE}" stroke-width="2" stroke-dasharray="6 6" />
       {ticks_svg}
@@ -556,7 +566,7 @@ html = f"""<!doctype html>
     </div>
   </div>
 
-  <footer class="mono">Generated by src/report.py &middot; F1-Strategy-Agent</footer>
+  <footer>Generated by src/report.py &middot; F1-Strategy-Agent</footer>
 </div>
 </body>
 </html>
