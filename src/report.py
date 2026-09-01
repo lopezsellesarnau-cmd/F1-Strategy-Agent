@@ -89,93 +89,163 @@ def style_ax(ax):
     ax.yaxis.label.set_color(INK)
 
 
-def build_track_path():
-    """Real Suzuka silhouette, generated (not hand-drawn) from a lemniscate
-    (figure-8 curve, x = cos(t)/(1+sin²t), y = sin(t)cos(t)/(1+sin²t)) — the
-    only curve family that crosses itself exactly once, which is what makes
-    a hand-tuned bezier path so easy to wreck by editing (it either stops
-    crossing itself, or crosses in an ugly kink) and so easy to get right
-    generated from a formula instead.
+# Suzuka's real centerline, sampled from the public-domain 2005 track map
+# (Wikimedia Commons, "Suzuka circuit map--2005.svg" — traced with
+# Inkscape's "knot" path effect specifically to render the flyover bridge
+# correctly, i.e. this is an actual accurate trace, not an approximation).
+# 221 points, evenly spaced by arc length, in the source file's own local
+# coordinate space (its ancestor <g> transforms already baked in via
+# getScreenCTM() at extraction time — see the F1-Strategy-Agent session
+# notes for the extraction method). A first attempt at this generated a
+# synthetic figure-8 (a lemniscate curve) instead of using real geometry —
+# it crossed itself in the right *topological* place but wasn't Suzuka's
+# actual shape, which is the whole point of naming the circuit.
+SUZUKA_RAW_POINTS = [
+    (727.77, 394.98), (744.56, 400.53), (761.32, 406.16), (778.06, 411.87), (794.76, 417.68),
+    (811.43, 423.6), (828.05, 429.64), (844.62, 435.81), (860.57, 443.25), (872.54, 456.22),
+    (883.08, 470.41), (893.19, 484.93), (903.63, 499.2), (916.45, 510.82), (932.46, 506.35),
+    (934.57, 489.62), (925.84, 474.27), (916.65, 459.16), (907.97, 443.75), (899.6, 428.18),
+    (891.5, 412.46), (884.35, 396.29), (879.35, 379.34), (876.45, 361.91), (877.06, 344.26),
+    (880.51, 326.94), (886.56, 310.33), (893.96, 294.28), (903.27, 279.25), (913.72, 264.99),
+    (924.93, 251.32), (937.39, 238.78), (950.43, 226.84), (964.04, 215.55), (978.3, 205.09),
+    (993.24, 195.63), (1009, 187.63), (1025.43, 181.11), (1042.44, 176.3), (1059.91, 173.58),
+    (1077.53, 172.16), (1095.16, 173.26), (1112.69, 175.62), (1130.16, 178.33), (1147.62, 181.16),
+    (1165.09, 183.87), (1182.62, 186.22), (1200.23, 187.7), (1216.93, 182.36), (1230.57, 171.22),
+    (1240.43, 156.58), (1247.65, 140.45), (1252.5, 123.46), (1254.09, 105.9), (1249.14, 89.1),
+    (1238.32, 75.2), (1222.25, 68.15), (1204.75, 66.34), (1187.33, 69.25), (1170.42, 74.41),
+    (1153.87, 80.62), (1137.37, 87.01), (1120.93, 93.52), (1104.63, 100.37), (1088.52, 107.68),
+    (1072.64, 115.44), (1056.96, 123.63), (1041.38, 132), (1026.05, 140.81), (1011.13, 150.31),
+    (996.56, 160.33), (982.25, 170.72), (968.14, 181.38), (954.2, 192.27), (940.54, 203.49),
+    (927.01, 214.88), (913.46, 226.24), (899.77, 237.44), (886.02, 248.57), (872.27, 259.69),
+    (858.55, 270.85), (844.92, 282.12), (831.36, 293.47), (817.85, 304.88), (804.39, 316.35),
+    (790.99, 327.9), (777.65, 339.5), (764.29, 351.09), (750.93, 362.68), (737.61, 374.31),
+    (724.34, 386), (711.15, 397.78), (698.09, 409.7), (685.92, 422.45), (680.28, 439.14),
+    (676.47, 456.41), (673.81, 473.89), (672.34, 491.51), (672.89, 509.17), (675.23, 526.69),
+    (678.2, 544.13), (681.61, 561.48), (685.26, 578.78), (689.1, 596.05), (693.69, 613.12),
+    (698.51, 630.14), (702.8, 647.29), (705.62, 664.74), (705.9, 682.41), (701.83, 698.77),
+    (684.67, 702.91), (670.86, 712.27), (672.73, 729.78), (674.17, 747.39), (673.13, 765.02),
+    (667.85, 781.82), (659, 797.1), (647.52, 810.5), (633.02, 820.57), (617.56, 829.16),
+    (601.71, 836.99), (585.18, 843.25), (568.11, 847.84), (550.71, 850.96), (533.21, 853.5),
+    (515.7, 856), (498.19, 858.46), (480.67, 860.9), (463.15, 863.33), (445.63, 865.75),
+    (428.12, 868.17), (410.6, 870.6), (393.08, 873.06), (375.57, 875.54), (358.07, 878.05),
+    (340.57, 880.62), (323.09, 883.27), (305.61, 886.01), (288.15, 888.81), (270.7, 891.64),
+    (253.24, 894.47), (235.78, 897.27), (218.3, 900.01), (200.82, 902.67), (183.33, 905.3),
+    (165.84, 907.89), (148.33, 910.41), (130.81, 912.79), (113.26, 915), (95.64, 916.1),
+    (78.08, 914.17), (61.48, 908.22), (46.98, 898.18), (34.38, 885.79), (23.91, 871.57),
+    (18.57, 854.95), (20.72, 837.51), (31.19, 823.44), (46.01, 814.03), (63.38, 811.09),
+    (81.06, 810.54), (98.74, 810.07), (116.42, 809.7), (134.1, 809.31), (151.78, 808.72),
+    (169.43, 807.77), (185.67, 801.12), (198.56, 789.19), (207.13, 773.77), (216.88, 759.2),
+    (231.99, 750.22), (249.35, 747.88), (266.83, 750.18), (283.83, 755.07), (300.79, 760.06),
+    (318.08, 763.72), (335.46, 761.38), (351.16, 753.37), (363.36, 740.72), (372.76, 725.74),
+    (382.5, 710.99), (395.42, 699.03), (411.39, 691.53), (428.71, 688.16), (446.11, 690.13),
+    (461.33, 698.92), (473.01, 712.18), (483.76, 726.21), (494.84, 739.99), (508.03, 751.61),
+    (524.38, 758.28), (541.93, 759.91), (559.08, 756.18), (574.77, 748.04), (589.62, 738.46),
+    (603.38, 727.37), (615.73, 714.71), (626.58, 700.78), (635.64, 685.59), (642.81, 669.46),
+    (646.52, 652.18), (648.95, 634.67), (649.6, 617), (648.19, 599.38), (644.49, 582.11),
+    (638.58, 565.44), (632.39, 548.88), (626.01, 532.38), (619.57, 515.91), (613.33, 499.37),
+    (607.54, 482.66), (607.65, 465.56), (614.56, 449.29), (621.68, 433.1), (629.01, 417.01),
+    (636.59, 401.03), (644.43, 385.17), (657.27, 374.13), (674.33, 377.66), (691.16, 383.07),
+    (707.99, 388.51),
+]
 
-    The two lobes are scaled unevenly (small tight lobe vs. one big sweeping
-    lobe) to match Suzuka's real proportions — the small lobe stands in for
-    the Esses, the big lobe for Degner/Hairpin/Spoon Curve/130R — then a few
-    corner-like features are layered on top: a wiggle through the small
-    lobe's top arc (Esses), a tightened flat spot at the big lobe's far tip
-    (Hairpin), and one straightened edge (back straight / start-finish).
+# Landmark points, by index into SUZUKA_RAW_POINTS — picked once by eye
+# against the real trace (the corners a viewer actually recognizes: the
+# S-curves, the hairpin's tight reversal, the point the track crosses
+# itself, and a clean straight to hang a start/finish line on).
+SUZUKA_LANDMARK_IDX = {"BRIDGE": 90, "HAIRPIN": 155, "ESSES": 185, "START / FINISH": 135}
 
-    Returns (path_d, landmarks) where landmarks has the (x, y) points used
-    to place the callouts and ticks, so they track the shape instead of
-    being independently hand-placed coordinates that drift out of sync
-    with it (which is exactly what happened before).
+
+def build_track_path(vb_w=900, vb_h=600, margin=34):
+    """Places the real Suzuka trace (SUZUKA_RAW_POINTS) inside a vb_w×vb_h
+    viewBox, self-correcting scale and offset until the combined footprint
+    of the track *and* its callout labels sits centered with `margin`
+    clearance on every side.
+
+    A single scale+center computed from the track alone isn't enough: the
+    callout leader lines and text extend past the track's own bounding box
+    by different amounts per label ("START / FINISH" is a lot wider than
+    "ESSES"), so centering only the track left both text clipped off the
+    canvas edge and the whole composition reading as off-center — exactly
+    the two bugs reported against the previous version. Fixed point loop:
+    measure the combined bbox, rescale/recenter to fit it, repeat — a
+    handful of iterations converges because the callout offsets scale down
+    together with the track once the loop shrinks things to fit.
     """
-    def smoothstep(t):
-        t = max(0.0, min(1.0, t))
-        return t * t * (3 - 2 * t)
+    def place(scale, ox, oy):
+        pts = [(ox + x * scale, oy + y * scale) for x, y in SUZUKA_RAW_POINTS]
+        n = len(pts)
+        ccx = sum(p[0] for p in pts) / n
+        ccy = sum(p[1] for p in pts) / n
+        callouts = {}
+        for label, idx in SUZUKA_LANDMARK_IDX.items():
+            px, py = pts[idx]
+            dx, dy = px - ccx, py - ccy
+            dl = math.hypot(dx, dy) or 1
+            dx, dy = dx / dl, dy / dl
+            lx, ly = px + dx * 34, py + dy * 34
+            text_len = 34 + len(label) * 3.2
+            tx = px + dx * (34 + text_len * 0.55)
+            ty = py + dy * (34 + text_len * 0.55)
+            anchor = "end" if dx < -0.15 else ("start" if dx > 0.15 else "middle")
+            text_w = len(label) * 7.2
+            if anchor == "end":
+                tbox = (tx - text_w, ty - 12, tx, ty + 4)
+            elif anchor == "start":
+                tbox = (tx, ty - 12, tx + text_w, ty + 4)
+            else:
+                tbox = (tx - text_w / 2, ty - 12, tx + text_w / 2, ty + 4)
+            callouts[label] = {"point": (px, py), "leader": (lx, ly),
+                                "text": (tx, ty), "anchor": anchor, "tbox": tbox}
+        return pts, callouts
 
-    n = 200
-    cx, cy = 480, 320
-    raw = []
+    def combined_bbox(pts, callouts):
+        xs = [p[0] for p in pts]
+        ys = [p[1] for p in pts]
+        x0, x1, y0, y1 = min(xs), max(xs), min(ys), max(ys)
+        for c in callouts.values():
+            tb = c["tbox"]
+            x0, x1 = min(x0, tb[0]), max(x1, tb[2])
+            y0, y1 = min(y0, tb[1]), max(y1, tb[3])
+        return x0, x1, y0, y1
+
+    xs0 = [p[0] for p in SUZUKA_RAW_POINTS]
+    ys0 = [p[1] for p in SUZUKA_RAW_POINTS]
+    w0, h0 = max(xs0) - min(xs0), max(ys0) - min(ys0)
+    scale = min((vb_w - 2 * margin) / w0, (vb_h - 2 * margin) / h0) * 0.72
+    ox, oy = 0.0, 0.0
+    for _ in range(8):
+        pts, callouts = place(scale, ox, oy)
+        x0, x1, y0, y1 = combined_bbox(pts, callouts)
+        bw, bh = x1 - x0, y1 - y0
+        fit_scale = min((vb_w - 2 * margin) / bw, (vb_h - 2 * margin) / bh)
+        bcx, bcy = (x0 + x1) / 2, (y0 + y1) / 2
+        ox = vb_w / 2 - (bcx - ox) * fit_scale
+        oy = vb_h / 2 - (bcy - oy) * fit_scale
+        scale *= fit_scale
+
+    pts, callouts = place(scale, ox, oy)
+
+    n = len(pts)
+    d = f"M {pts[0][0]:.1f},{pts[0][1]:.1f} "
     for i in range(n):
-        t = 2 * math.pi * i / n
-        denom = 1 + math.sin(t) ** 2
-        x = math.cos(t) / denom
-        y = math.sin(t) * math.cos(t) / denom
-        # Blend factor: 0 deep in the small lobe, 1 deep in the big lobe,
-        # smoothstep'd over a band around the crossing so the transition is
-        # gradual — a hard switch here is what produced an ugly notch right
-        # at the bridge in the first pass of this generator.
-        b = smoothstep((x + 0.12) / 0.24)
-        sx = 190 + b * (330 - 190)
-        sy = 145 + b * (235 - 145)
-        shift_x = (1 - b) * 35
-        shift_y = (1 - b) * -50
-        X = cx + x * sx + shift_x
-        Y = cy - y * sy + shift_y
-        raw.append([X, Y, t, b])
-
-    for i, (X, Y, t, b) in enumerate(raw):
-        if b < 0.15:  # Esses wiggle, small lobe's top arc only
-            wig = 14 * math.sin(t * 5.5)
-            raw[i][0] += wig * math.cos(t + math.pi / 2) * 0.6
-            raw[i][1] += wig * math.sin(t + math.pi / 2) * 0.6
-        if b > 0.85 and 2.7 < (t % (2 * math.pi)) < 3.6:  # Hairpin tip
-            raw[i][0] -= 26
-
-    straight_idx = [i for i, (X, Y, t, b) in enumerate(raw)
-                     if b > 0.9 and 0.15 < (t % (2 * math.pi)) < 0.85]
-    x0, y0 = raw[straight_idx[0]][0], raw[straight_idx[0]][1]
-    x1, y1 = raw[straight_idx[-1]][0], raw[straight_idx[-1]][1]
-    for k, i in enumerate(straight_idx):
-        f = k / (len(straight_idx) - 1)
-        raw[i][0] = x0 + (x1 - x0) * f
-        raw[i][1] = y0 + (y1 - y0) * f
-
-    points = [(p[0], p[1]) for p in raw]
-
-    d = f"M {points[0][0]:.1f},{points[0][1]:.1f} "
-    for i in range(n):
-        p0, p1, p2, p3 = (points[(i - 1) % n], points[i % n],
-                          points[(i + 1) % n], points[(i + 2) % n])
+        p0, p1, p2, p3 = pts[(i - 1) % n], pts[i % n], pts[(i + 1) % n], pts[(i + 2) % n]
         c1x, c1y = p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6
         c2x, c2y = p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6
         d += f"C {c1x:.1f},{c1y:.1f} {c2x:.1f},{c2y:.1f} {p2[0]:.1f},{p2[1]:.1f} "
     d += "Z"
 
-    crossing = min(raw, key=lambda r: abs(r[3] - 0.5))
-    hairpin = max((r for r in raw if r[3] > 0.85), key=lambda r: r[1])
-    esses_top = min((r for r in raw if r[3] < 0.1), key=lambda r: r[1])
-    landmarks = {
-        "straight_start": (x0, y0),
-        "straight_end": (x1, y1),
-        "crossing": (crossing[0], crossing[1]),
-        "hairpin": (hairpin[0], hairpin[1]),
-        "esses_top": (esses_top[0], esses_top[1]),
-    }
-    return d, landmarks
+    return d, callouts, scale, ox, oy
 
 
-TRACK_PATH_D, TRACK_LANDMARKS = build_track_path()
+TRACK_PATH_D, TRACK_CALLOUTS, TRACK_SCALE, TRACK_OX, TRACK_OY = build_track_path()
+
+
+def _placed(idx):
+    """A raw Suzuka point, mapped through the same scale/offset the fit
+    loop converged on — for anything (like the tick marks) that needs a
+    point *near* a landmark rather than exactly on it."""
+    x, y = SUZUKA_RAW_POINTS[idx % len(SUZUKA_RAW_POINTS)]
+    return TRACK_OX + x * TRACK_SCALE, TRACK_OY + y * TRACK_SCALE
 
 
 print("Loading races...")
@@ -293,49 +363,50 @@ legend_html = "\n".join(
     for name, total, color, dur in car_rows
 )
 
-# Distance-marker ticks along the back straight — purely decorative, gives
-# the track a "blueprint" feel. Placed along the actual straight segment of
-# the generated path (TRACK_LANDMARKS), not independent fixed coordinates,
-# so they can't drift out of sync with the track shape the way the old
-# hand-placed ticks (tied to a since-deleted rounded-rectangle path) did.
-_sx0, _sy0 = TRACK_LANDMARKS["straight_start"]
-_sx1, _sy1 = TRACK_LANDMARKS["straight_end"]
-_slen = math.hypot(_sx1 - _sx0, _sy1 - _sy0)
-_perp = (-(_sy1 - _sy0) / _slen, (_sx1 - _sx0) / _slen)
+# Distance-marker ticks either side of the start/finish point — purely
+# decorative, gives the track a "blueprint" feel. Perpendicular to the
+# *local* tangent there (a few raw points either side of the landmark
+# index, not the direction toward some other landmark far along the
+# track — using ESSES for that direction was what made the first pass of
+# these ticks sit at the wrong angle to the actual road) and offset
+# outward from the stroke so they never sit on top of it.
+_sx, _sy = TRACK_CALLOUTS["START / FINISH"]["point"]
+_sf_idx = SUZUKA_LANDMARK_IDX["START / FINISH"]
+_tx0, _ty0 = _placed(_sf_idx - 4)
+_tx1, _ty1 = _placed(_sf_idx + 4)
+_dxs, _dys = _tx1 - _tx0, _ty1 - _ty0
+_slen = math.hypot(_dxs, _dys) or 1
+_dxs, _dys = _dxs / _slen, _dys / _slen
+_perp = (-_dys, _dxs)
+# Sign the outward direction away from the track's own centroid (same rule
+# the callouts use), so the ticks land on the empty side of the straight.
+_ccx = sum(p[0] for p in [TRACK_CALLOUTS[k]["point"] for k in TRACK_CALLOUTS]) / len(TRACK_CALLOUTS)
+_ccy = sum(p[1] for p in [TRACK_CALLOUTS[k]["point"] for k in TRACK_CALLOUTS]) / len(TRACK_CALLOUTS)
+if (_sx - _ccx) * _perp[0] + (_sy - _ccy) * _perp[1] < 0:
+    _perp = (-_perp[0], -_perp[1])
 ticks_svg = "\n".join(
-    f'<line x1="{_sx0 + (_sx1 - _sx0) * f + _perp[0] * o1:.1f}" y1="{_sy0 + (_sy1 - _sy0) * f + _perp[1] * o1:.1f}" '
-    f'x2="{_sx0 + (_sx1 - _sx0) * f + _perp[0] * o2:.1f}" y2="{_sy0 + (_sy1 - _sy0) * f + _perp[1] * o2:.1f}" '
+    f'<line x1="{_sx + _dxs * f + _perp[0] * o1:.1f}" y1="{_sy + _dys * f + _perp[1] * o1:.1f}" '
+    f'x2="{_sx + _dxs * f + _perp[0] * o2:.1f}" y2="{_sy + _dys * f + _perp[1] * o2:.1f}" '
     f'stroke="{INK}" stroke-opacity="0.25" stroke-width="2" />'
-    for f in [i / 8 for i in range(1, 8)]
-    for o1, o2 in [(-20, -34)]
+    for f in [-60, -40, -20, 20, 40, 60]
+    for o1, o2 in [(20, 34)]
 )
 
-# Callouts (dot + leader line + label), tied to TRACK_LANDMARKS so they
-# always point at the actual generated shape — ESSES on the small lobe,
-# HAIRPIN at the big lobe's tightened tip, START/FINISH at the straight's
-# midpoint, BRIDGE at the one point the track crosses itself (the feature
-# that makes Suzuka Suzuka).
-_ex, _ey = TRACK_LANDMARKS["esses_top"]
-_hx, _hy = TRACK_LANDMARKS["hairpin"]
-_cx, _cy = TRACK_LANDMARKS["crossing"]
-_mx, _my = (_sx0 + _sx1) / 2, (_sy0 + _sy1) / 2
-callouts_svg = f"""
-  <circle cx="{_ex:.1f}" cy="{_ey:.1f}" r="3" fill="{ACCENT}" />
-  <line x1="{_ex:.1f}" y1="{_ey:.1f}" x2="{_ex - 60:.1f}" y2="{_ey - 40:.1f}" stroke="{ACCENT}" stroke-width="1.5" />
-  <text x="{_ex - 130:.1f}" y="{_ey - 44:.1f}" font-family="'IBM Plex Mono', monospace" font-size="13" fill="{INK}" letter-spacing="1">ESSES</text>
-
-  <circle cx="{_hx:.1f}" cy="{_hy:.1f}" r="3" fill="{ACCENT}" />
-  <line x1="{_hx:.1f}" y1="{_hy:.1f}" x2="{_hx + 40:.1f}" y2="{_hy + 45:.1f}" stroke="{ACCENT}" stroke-width="1.5" />
-  <text x="{_hx - 20:.1f}" y="{_hy + 62:.1f}" font-family="'IBM Plex Mono', monospace" font-size="13" fill="{INK}" letter-spacing="1">HAIRPIN</text>
-
-  <circle cx="{_cx:.1f}" cy="{_cy:.1f}" r="3" fill="{INK}" />
-  <line x1="{_cx:.1f}" y1="{_cy:.1f}" x2="{_cx - 70:.1f}" y2="{_cy + 10:.1f}" stroke="{INK}" stroke-width="1.5" />
-  <text x="{_cx - 175:.1f}" y="{_cy + 14:.1f}" font-family="'IBM Plex Mono', monospace" font-size="13" fill="{INK}" letter-spacing="1">BRIDGE — TRACK CROSSES ITSELF</text>
-
-  <circle cx="{_mx:.1f}" cy="{_my:.1f}" r="3" fill="{INK}" />
-  <line x1="{_mx:.1f}" y1="{_my:.1f}" x2="{_mx:.1f}" y2="{_my - 65:.1f}" stroke="{INK}" stroke-width="1.5" />
-  <text x="{_mx:.1f}" y="{_my - 73:.1f}" font-family="'IBM Plex Mono', monospace" font-size="13" fill="{INK}" letter-spacing="1" text-anchor="middle">START / FINISH</text>
-"""
+# Callouts (dot + leader line + label) — every point, leader endpoint, text
+# position and text-anchor comes straight out of TRACK_CALLOUTS, computed by
+# build_track_path()'s fit loop so the label can never land on the road or
+# clip off the canvas (the two bugs in the previous version) regardless of
+# how the track ends up scaled.
+_callout_parts = []
+for _label, _c in TRACK_CALLOUTS.items():
+    _px, _py = _c["point"]
+    _lx, _ly = _c["leader"]
+    _tx, _ty = _c["text"]
+    _callout_parts.append(f"""
+  <circle cx="{_px:.1f}" cy="{_py:.1f}" r="3" fill="{ACCENT if _label != "BRIDGE" else INK}" />
+  <line x1="{_px:.1f}" y1="{_py:.1f}" x2="{_lx:.1f}" y2="{_ly:.1f}" stroke="{ACCENT if _label != "BRIDGE" else INK}" stroke-width="1.5" />
+  <text x="{_tx:.1f}" y="{_ty:.1f}" font-family="'IBM Plex Mono', monospace" font-size="13" fill="{INK}" letter-spacing="1" text-anchor="{_c["anchor"]}">{_label}</text>""")
+callouts_svg = "\n".join(_callout_parts)
 
 html = f"""<!doctype html>
 <html lang="en">
@@ -480,7 +551,7 @@ html = f"""<!doctype html>
         <path d="{TRACK_PATH_D}"
               fill="none" stroke="{BONE}" stroke-width="2" stroke-dasharray="6 6" />
         {ticks_svg}
-        <line x1="{_mx - _perp[0] * 26:.1f}" y1="{_my - _perp[1] * 26:.1f}" x2="{_mx + _perp[0] * 26:.1f}" y2="{_my + _perp[1] * 26:.1f}" stroke="{INK}" stroke-width="4" />
+        <line x1="{_sx - _perp[0] * 26:.1f}" y1="{_sy - _perp[1] * 26:.1f}" x2="{_sx + _perp[0] * 26:.1f}" y2="{_sy + _perp[1] * 26:.1f}" stroke="{INK}" stroke-width="4" />
         {callouts_svg}
         {cars_svg}
       </svg>
