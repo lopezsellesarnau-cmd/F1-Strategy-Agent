@@ -32,12 +32,19 @@ matplotlib.use("Agg")
 
 fastf1.Cache.enable_cache("data/cache")
 
-BONE = "#F0EEE9"
-INK = "#151412"
+# Scandinavian/contemporary palette (28 ago 2026 restyle) — was a dark,
+# high-contrast "industrial spec sheet" (near-black ink, 2px borders, a
+# solid-black ticker bar and rotated side rail, viewfinder corner brackets).
+# Swapped for a lighter, airier system: warm off-white instead of near-white
+# bone, softened charcoal instead of near-black ink, hairline hitting 1px
+# borders instead of 2px, and the clay accent used sparingly (small tags,
+# one highlighted row/card) instead of as a fill color.
+BONE = "#FBFAF8"
+INK = "#232220"
 ACCENT = "#C1663D"
-LINE = "rgba(21,20,18,0.16)"
-COMPOUND_COLOR = {"SOFT": "#C1663D", "MEDIUM": "#B8433F", "HARD": "#151412"}
-STRATEGY_COLOR = ["#C1663D", "#B8433F", "#151412", "#5A6B8C", "#3F7A4E"]
+LINE = "rgba(35,34,32,0.12)"
+COMPOUND_COLOR = {"SOFT": "#C1663D", "MEDIUM": "#B8433F", "HARD": "#232220"}
+STRATEGY_COLOR = ["#C1663D", "#B8433F", "#232220", "#5A6B8C", "#3F7A4E"]
 
 # compound-mean, train=Jeddah+Bahrain, test=Miami (baselinec2.py)
 MAE_BASELINE_V1 = 3.49
@@ -414,173 +421,142 @@ html = f"""<!doctype html>
 <meta charset="utf-8" />
 <title>F1 Strategy Agent — model report</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
   * {{ box-sizing: border-box; }}
   html, body {{ margin: 0; padding: 0; }}
   body {{
     background: {BONE}; color: {INK};
-    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, ui-sans-serif, sans-serif;
     letter-spacing: -0.011em;
+    -webkit-font-smoothing: antialiased;
   }}
+  .mono {{ font-family: 'IBM Plex Mono', ui-monospace, monospace; letter-spacing: 0; }}
 
-  /* ── Top ticker — same device as a classified-doc header strip ── */
-  .ticker {{
-    display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;
-    background: {INK}; color: {BONE}; padding: 8px 24px;
-    font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em;
-  }}
-  .ticker span {{ opacity: 0.85; }}
-
-  .page {{ display: flex; max-width: 1420px; margin: 0 auto; }}
-
-  /* ── Left rail — rotated label, same move as a spec-sheet side band ── */
-  .rail {{
-    writing-mode: vertical-rl; transform: rotate(180deg);
-    background: {ACCENT}; color: {BONE};
-    flex-shrink: 0; width: 44px;
-    display: flex; align-items: center; justify-content: center; gap: 10px;
-    font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; font-weight: 600;
-  }}
-
-  .wrap {{ flex: 1; min-width: 0; padding: 28px 32px 96px; }}
-
-  /* ── Header meta bar — mirrors the "P1 INDUSTRIAL ROBOT / SERIAL NO." row ── */
-  .meta-bar {{
+  /* ── Top meta line — a quiet strip of context, not a dark banner. ── */
+  .topline {{
     display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
-    border-bottom: 2px solid {INK}; padding-bottom: 10px; margin-bottom: 28px;
-    font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; color: rgba(21,20,18,0.6);
+    max-width: 880px; margin: 0 auto; padding: 22px 32px 0;
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em;
+    color: rgba(35,34,32,0.42);
   }}
 
-  h1 {{ font-size: 34px; font-weight: 700; letter-spacing: -0.02em; margin: 0 0 8px; }}
-  .sub {{ color: rgba(21,20,18,0.62); font-size: 13px; margin: 0 0 32px; max-width: 78ch; line-height: 1.5; }}
+  .page {{ max-width: 880px; margin: 0 auto; padding: 18px 32px 100px; }}
+
+  h1 {{ font-size: 32px; font-weight: 600; letter-spacing: -0.025em; margin: 22px 0 10px; }}
+  .sub {{ color: rgba(35,34,32,0.6); font-size: 14.5px; margin: 0 0 36px; max-width: 68ch; line-height: 1.6; }}
   h2 {{
-    font-size: 11px; text-transform: uppercase; letter-spacing: 0.16em; font-weight: 600;
-    color: {INK}; margin: 44px 0 14px; border-bottom: 2px solid {INK};
-    padding-bottom: 10px;
+    font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600;
+    color: rgba(35,34,32,0.55); margin: 52px 0 16px;
   }}
 
-  .metric-row {{ display: flex; gap: 0; flex-wrap: wrap; border: 2px solid {INK}; border-right: none; }}
+  .metric-row {{ display: flex; gap: 12px; flex-wrap: wrap; }}
   .metric {{
-    border-right: 2px solid {INK}; background: #fff; padding: 16px 18px; flex: 1; min-width: 240px;
+    border: 1px solid {LINE}; border-radius: 12px; background: #fff;
+    padding: 18px 20px; flex: 1; min-width: 240px;
   }}
-  .metric .label {{ font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(21,20,18,0.6); }}
-  .metric .value {{ font-size: 30px; font-weight: 700; margin-top: 10px; font-variant-numeric: tabular-nums; }}
-  .metric.win {{ background: {INK}; }}
-  .metric.win .label {{ color: rgba(240,238,233,0.65); }}
+  .metric .label {{ font-size: 11.5px; color: rgba(35,34,32,0.55); line-height: 1.4; }}
+  .metric .value {{ font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 26px; font-weight: 500; margin-top: 12px; font-variant-numeric: tabular-nums; }}
+  .metric.win {{ border-color: {ACCENT}; box-shadow: inset 0 0 0 1px {ACCENT}; }}
+  .metric.win .label {{ color: rgba(35,34,32,0.62); }}
   .metric.win .value {{ color: {ACCENT}; }}
 
   .charts {{ display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }}
-  @media (max-width: 860px) {{ .charts {{ grid-template-columns: 1fr; }} .page {{ flex-direction: column; }} .rail {{ writing-mode: horizontal-tb; transform: none; width: auto; height: 32px; }} }}
+  @media (max-width: 720px) {{ .charts {{ grid-template-columns: 1fr; }} }}
   .chart-label {{
-    font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: rgba(21,20,18,0.6);
-    margin: 0 0 8px; border-top: 2px solid {INK}; padding-top: 8px;
+    font-size: 11.5px; letter-spacing: 0.02em; color: rgba(35,34,32,0.55);
+    margin: 0 0 10px;
   }}
-  img {{ width: 100%; border: 2px solid {INK}; background: #fff; display: block; }}
+  img {{ width: 100%; border: 1px solid {LINE}; border-radius: 12px; background: #fff; display: block; }}
 
-  /* ── Corner-bracket frame — the viewfinder-corner trick from the ref shots ── */
-  .frame {{ position: relative; border: 2px solid {INK}; background: #fff; padding: 24px; }}
-  .cnr {{ position: absolute; width: 16px; height: 16px; pointer-events: none; }}
-  .cnr-tl {{ top: -2px; left: -2px; border-top: 3px solid {ACCENT}; border-left: 3px solid {ACCENT}; }}
-  .cnr-tr {{ top: -2px; right: -2px; border-top: 3px solid {ACCENT}; border-right: 3px solid {ACCENT}; }}
-  .cnr-bl {{ bottom: -2px; left: -2px; border-bottom: 3px solid {ACCENT}; border-left: 3px solid {ACCENT}; }}
-  .cnr-br {{ bottom: -2px; right: -2px; border-bottom: 3px solid {ACCENT}; border-right: 3px solid {ACCENT}; }}
+  .frame {{ border: 1px solid {LINE}; border-radius: 16px; background: #fff; padding: 28px; box-shadow: 0 1px 2px rgba(35,34,32,0.04); }}
 
   .track-svg {{ width: 100%; height: auto; }}
-  .legend {{ display: flex; flex-wrap: wrap; gap: 18px; margin-top: 18px; padding-top: 14px; border-top: 1px solid {LINE}; font-size: 12px; }}
+  .legend {{ display: flex; flex-wrap: wrap; gap: 18px; margin-top: 20px; padding-top: 16px; border-top: 1px solid {LINE}; font-size: 12.5px; color: rgba(35,34,32,0.75); }}
   .legend-item {{ display: flex; align-items: center; gap: 8px; }}
-  .swatch {{ width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0; margin-right: 8px; }}
+  .swatch {{ width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex-shrink: 0; margin-right: 8px; }}
 
-  table {{ width: 100%; border-collapse: collapse; font-size: 13px; background: #fff; border: 2px solid {INK}; margin-top: 16px; }}
+  table {{ width: 100%; border-collapse: collapse; font-size: 13.5px; background: #fff; border: 1px solid {LINE}; border-radius: 12px; margin-top: 16px; overflow: hidden; }}
   th {{
-    text-align: left; padding: 10px 14px; background: {INK}; color: {BONE};
-    font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 500;
+    text-align: left; padding: 12px 16px; background: rgba(35,34,32,0.03); color: rgba(35,34,32,0.55);
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600;
+    border-bottom: 1px solid {LINE};
   }}
-  td {{ text-align: left; padding: 10px 14px; border-bottom: 1px solid {LINE}; }}
-  td.num {{ text-align: right; font-variant-numeric: tabular-nums; }}
-  tr.best {{ background: rgba(193,102,61,0.08); font-weight: 600; }}
+  td {{ text-align: left; padding: 12px 16px; border-bottom: 1px solid {LINE}; }}
+  tr:last-child td {{ border-bottom: none; }}
+  td.num {{ text-align: right; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }}
+  tr.best {{ background: rgba(193,102,61,0.06); font-weight: 600; }}
   .chip {{
-    display: inline-block; font-size: 9px; background: {ACCENT}; color: {BONE};
-    padding: 2px 6px; margin-left: 6px; letter-spacing: 0.08em;
+    display: inline-block; font-size: 9.5px; font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    background: {ACCENT}; color: #fff; border-radius: 20px;
+    padding: 2px 8px; margin-left: 6px; letter-spacing: 0.06em;
   }}
   footer {{
-    margin-top: 56px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em;
-    color: rgba(21,20,18,0.5); border-top: 2px solid {INK}; padding-top: 12px;
+    margin-top: 60px; font-size: 11px; letter-spacing: 0.02em;
+    color: rgba(35,34,32,0.4); border-top: 1px solid {LINE}; padding-top: 16px;
   }}
 </style>
 </head>
 <body>
-<div class="ticker">
-  <span>TRAINED — JEDDAH + BAHRAIN GP 2023</span>
-  <span>F1 STRATEGY AGENT — LAP-TIME MODEL</span>
-  <span>&gt;&gt;&gt; EVALUATED — JAPANESE GP 2023</span>
+<div class="topline mono">
+  <span>Trained — Jeddah + Bahrain GP 2023</span>
+  <span>Evaluated — Japanese GP 2023</span>
 </div>
 
 <div class="page">
-  <div class="rail">MODEL REPORT</div>
+  <h1>Lap-Time Model &amp; Pit Strategy Simulation</h1>
+  <p class="sub">A RandomForest model predicts lap time from tyre compound, tyre wear and lap number — trained on two Grand Prix, evaluated on a third it never saw. The result feeds a pit-stop strategy simulation on the test circuit.</p>
 
-  <div class="wrap">
-    <div class="meta-bar">
-      <span>F1-Strategy-Agent / src/report.py</span>
-      <span>Source: FastF1 · 2023 season</span>
+  <h2>Model performance</h2>
+  <div class="metric-row">
+    <div class="metric">
+      <div class="label">v1 — mean lap time by compound</div>
+      <div class="value">{MAE_BASELINE_V1:.2f}s MAE</div>
     </div>
-
-    <h1>Lap-Time Model &amp; Pit Strategy Simulation</h1>
-    <p class="sub">A RandomForest model predicts lap time from tyre compound, tyre wear and lap number — trained on two Grand Prix, evaluated on a third it never saw. The result feeds a pit-stop strategy simulation on the test circuit.</p>
-
-    <h2>Model performance</h2>
-    <div class="metric-row">
-      <div class="metric">
-        <div class="label">v1 — mean lap time by compound</div>
-        <div class="value">{MAE_BASELINE_V1:.2f}s MAE</div>
-      </div>
-      <div class="metric win">
-        <div class="label">v2 — Compound + TyreLife + LapNumber, delta to circuit baseline</div>
-        <div class="value">{mae_v2:.2f}s MAE</div>
-      </div>
+    <div class="metric win">
+      <div class="label">v2 — Compound + TyreLife + LapNumber, delta to circuit baseline</div>
+      <div class="value">{mae_v2:.2f}s MAE</div>
     </div>
-
-    <h2>Pit strategy simulation — Suzuka 2023 ({TOTAL_LAPS} laps)</h2>
-    <p class="sub">Assumes the circuit's baseline pace is known ahead of time (e.g. from practice/qualifying — here taken from the real race: {test_baseline:.2f}s). The model only predicts how far each lap drifts from that pace, based on compound and tyre wear. Each car laps the track once, at a speed proportional to its simulated total race time — first one home wins.</p>
-
-    <div class="frame">
-      <span class="cnr cnr-tl"></span><span class="cnr cnr-tr"></span>
-      <span class="cnr cnr-bl"></span><span class="cnr cnr-br"></span>
-      <svg class="track-svg" viewBox="0 0 900 600" xmlns="http://www.w3.org/2000/svg">
-        <path id="track" d="{TRACK_PATH_D}"
-              fill="none" stroke="{INK}" stroke-opacity="0.14" stroke-width="26" stroke-linecap="round" stroke-linejoin="round" />
-        <path d="{TRACK_PATH_D}"
-              fill="none" stroke="{BONE}" stroke-width="2" stroke-dasharray="6 6" />
-        {ticks_svg}
-        <line x1="{_sx - _perp[0] * 26:.1f}" y1="{_sy - _perp[1] * 26:.1f}" x2="{_sx + _perp[0] * 26:.1f}" y2="{_sy + _perp[1] * 26:.1f}" stroke="{INK}" stroke-width="4" />
-        {callouts_svg}
-        {cars_svg}
-      </svg>
-      <div class="legend">
-        {legend_html}
-      </div>
-    </div>
-
-    <table>
-      <thead><tr><th>Strategy</th><th>Estimated total time</th><th>Gap to best</th></tr></thead>
-      <tbody>
-        {table_rows}
-      </tbody>
-    </table>
-
-    <h2>Charts</h2>
-    <div class="charts">
-      <div>
-        <p class="chart-label">Tyre degradation by compound</p>
-        <img src="data:image/png;base64,{degradation_img}" alt="Degradation by compound" />
-      </div>
-      <div>
-        <p class="chart-label">Predicted vs. actual — Suzuka 2023</p>
-        <img src="data:image/png;base64,{prediction_img}" alt="Predicted vs actual" />
-      </div>
-    </div>
-
-    <footer>Generated by src/report.py &middot; F1-Strategy-Agent</footer>
   </div>
+
+  <h2>Pit strategy simulation — Suzuka 2023 ({TOTAL_LAPS} laps)</h2>
+  <p class="sub">Assumes the circuit's baseline pace is known ahead of time (e.g. from practice/qualifying — here taken from the real race: {test_baseline:.2f}s). The model only predicts how far each lap drifts from that pace, based on compound and tyre wear. Each car laps the track once, at a speed proportional to its simulated total race time — first one home wins.</p>
+
+  <div class="frame">
+    <svg class="track-svg" viewBox="0 0 900 600" xmlns="http://www.w3.org/2000/svg">
+      <path id="track" d="{TRACK_PATH_D}"
+            fill="none" stroke="{INK}" stroke-opacity="0.09" stroke-width="26" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="{TRACK_PATH_D}"
+            fill="none" stroke="{BONE}" stroke-width="2" stroke-dasharray="6 6" />
+      {ticks_svg}
+      <line x1="{_sx - _perp[0] * 26:.1f}" y1="{_sy - _perp[1] * 26:.1f}" x2="{_sx + _perp[0] * 26:.1f}" y2="{_sy + _perp[1] * 26:.1f}" stroke="{INK}" stroke-width="4" />
+      {callouts_svg}
+      {cars_svg}
+    </svg>
+    <div class="legend">
+      {legend_html}
+    </div>
+  </div>
+
+  <table>
+    <thead><tr><th>Strategy</th><th>Estimated total time</th><th>Gap to best</th></tr></thead>
+    <tbody>
+      {table_rows}
+    </tbody>
+  </table>
+
+  <h2>Charts</h2>
+  <div class="charts">
+    <div>
+      <p class="chart-label mono">Tyre degradation by compound</p>
+      <img src="data:image/png;base64,{degradation_img}" alt="Degradation by compound" />
+    </div>
+    <div>
+      <p class="chart-label mono">Predicted vs. actual — Suzuka 2023</p>
+      <img src="data:image/png;base64,{prediction_img}" alt="Predicted vs actual" />
+    </div>
+  </div>
+
+  <footer class="mono">Generated by src/report.py &middot; F1-Strategy-Agent</footer>
 </div>
 </body>
 </html>
