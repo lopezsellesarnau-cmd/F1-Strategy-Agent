@@ -445,7 +445,7 @@ html = f"""<!doctype html>
     background: {ACCENT}; color: {BONE};
     flex-shrink: 0; width: 44px;
     display: flex; align-items: center; justify-content: center; gap: 10px;
-    font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; font-weight: 600;
+    font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; font-weight: 500;
   }}
 
   .wrap {{ flex: 1; min-width: 0; padding: 28px 32px 96px; }}
@@ -453,24 +453,24 @@ html = f"""<!doctype html>
   /* ── Header meta bar — mirrors the "P1 INDUSTRIAL ROBOT / SERIAL NO." row ── */
   .meta-bar {{
     display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
-    border-bottom: 2px solid {INK}; padding-bottom: 10px; margin-bottom: 28px;
+    border-bottom: 1px solid {INK}; padding-bottom: 10px; margin-bottom: 28px;
     font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; color: rgba(21,20,18,0.6);
   }}
 
-  h1 {{ font-size: 34px; font-weight: 700; letter-spacing: -0.02em; margin: 0 0 8px; }}
+  h1 {{ font-size: 34px; font-weight: 500; letter-spacing: -0.015em; margin: 0 0 8px; }}
   .sub {{ color: rgba(21,20,18,0.62); font-size: 13px; margin: 0 0 32px; max-width: 78ch; line-height: 1.5; }}
   h2 {{
-    font-size: 11px; text-transform: uppercase; letter-spacing: 0.16em; font-weight: 600;
-    color: {INK}; margin: 44px 0 14px; border-bottom: 2px solid {INK};
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.16em; font-weight: 500;
+    color: {INK}; margin: 44px 0 14px; border-bottom: 1px solid {INK};
     padding-bottom: 10px;
   }}
 
-  .metric-row {{ display: flex; gap: 0; flex-wrap: wrap; border: 2px solid {INK}; border-right: none; }}
+  .metric-row {{ display: flex; gap: 0; flex-wrap: wrap; border: 1px solid {INK}; border-right: none; }}
   .metric {{
-    border-right: 2px solid {INK}; background: #fff; padding: 16px 18px; flex: 1; min-width: 240px;
+    border-right: 1px solid {INK}; background: #fff; padding: 16px 18px; flex: 1; min-width: 240px;
   }}
   .metric .label {{ font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(21,20,18,0.6); }}
-  .metric .value {{ font-size: 30px; font-weight: 700; margin-top: 10px; font-variant-numeric: tabular-nums; }}
+  .metric .value {{ font-size: 28px; font-weight: 500; margin-top: 10px; font-variant-numeric: tabular-nums; }}
   .metric.win {{ background: {INK}; }}
   .metric.win .label {{ color: rgba(240,238,233,0.65); }}
   .metric.win .value {{ color: {ACCENT}; }}
@@ -479,38 +479,38 @@ html = f"""<!doctype html>
   @media (max-width: 860px) {{ .charts {{ grid-template-columns: 1fr; }} .page {{ flex-direction: column; }} .rail {{ writing-mode: horizontal-tb; transform: none; width: auto; height: 32px; }} }}
   .chart-label {{
     font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: rgba(21,20,18,0.6);
-    margin: 0 0 8px; border-top: 2px solid {INK}; padding-top: 8px;
+    margin: 0 0 8px; border-top: 1px solid {INK}; padding-top: 8px;
   }}
-  img {{ width: 100%; border: 2px solid {INK}; background: #fff; display: block; }}
+  img {{ width: 100%; border: 1px solid {INK}; background: #fff; display: block; }}
 
   /* ── Corner-bracket frame — the viewfinder-corner trick from the ref shots ── */
-  .frame {{ position: relative; border: 2px solid {INK}; background: #fff; padding: 24px; }}
+  .frame {{ position: relative; border: 1px solid {INK}; background: #fff; padding: 24px; }}
   .cnr {{ position: absolute; width: 16px; height: 16px; pointer-events: none; }}
-  .cnr-tl {{ top: -2px; left: -2px; border-top: 3px solid {ACCENT}; border-left: 3px solid {ACCENT}; }}
-  .cnr-tr {{ top: -2px; right: -2px; border-top: 3px solid {ACCENT}; border-right: 3px solid {ACCENT}; }}
-  .cnr-bl {{ bottom: -2px; left: -2px; border-bottom: 3px solid {ACCENT}; border-left: 3px solid {ACCENT}; }}
-  .cnr-br {{ bottom: -2px; right: -2px; border-bottom: 3px solid {ACCENT}; border-right: 3px solid {ACCENT}; }}
+  .cnr-tl {{ top: -2px; left: -2px; border-top: 2px solid {ACCENT}; border-left: 2px solid {ACCENT}; }}
+  .cnr-tr {{ top: -2px; right: -2px; border-top: 2px solid {ACCENT}; border-right: 2px solid {ACCENT}; }}
+  .cnr-bl {{ bottom: -2px; left: -2px; border-bottom: 2px solid {ACCENT}; border-left: 2px solid {ACCENT}; }}
+  .cnr-br {{ bottom: -2px; right: -2px; border-bottom: 2px solid {ACCENT}; border-right: 2px solid {ACCENT}; }}
 
   .track-svg {{ width: 100%; height: auto; }}
   .legend {{ display: flex; flex-wrap: wrap; gap: 18px; margin-top: 18px; padding-top: 14px; border-top: 1px solid {LINE}; font-size: 12px; }}
   .legend-item {{ display: flex; align-items: center; gap: 8px; }}
   .swatch {{ width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0; margin-right: 8px; }}
 
-  table {{ width: 100%; border-collapse: collapse; font-size: 13px; background: #fff; border: 2px solid {INK}; margin-top: 16px; }}
+  table {{ width: 100%; border-collapse: collapse; font-size: 13px; background: #fff; border: 1px solid {INK}; margin-top: 16px; }}
   th {{
     text-align: left; padding: 10px 14px; background: {INK}; color: {BONE};
     font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 500;
   }}
   td {{ text-align: left; padding: 10px 14px; border-bottom: 1px solid {LINE}; }}
   td.num {{ text-align: right; font-variant-numeric: tabular-nums; }}
-  tr.best {{ background: rgba(193,102,61,0.08); font-weight: 600; }}
+  tr.best {{ background: rgba(193,102,61,0.08); font-weight: 500; }}
   .chip {{
     display: inline-block; font-size: 9px; background: {ACCENT}; color: {BONE};
     padding: 2px 6px; margin-left: 6px; letter-spacing: 0.08em;
   }}
   footer {{
     margin-top: 56px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em;
-    color: rgba(21,20,18,0.5); border-top: 2px solid {INK}; padding-top: 12px;
+    color: rgba(21,20,18,0.5); border-top: 1px solid {INK}; padding-top: 12px;
   }}
 </style>
 </head>
