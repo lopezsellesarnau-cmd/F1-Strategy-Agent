@@ -385,13 +385,11 @@ _ccx = sum(p[0] for p in [TRACK_CALLOUTS[k]["point"] for k in TRACK_CALLOUTS]) /
 _ccy = sum(p[1] for p in [TRACK_CALLOUTS[k]["point"] for k in TRACK_CALLOUTS]) / len(TRACK_CALLOUTS)
 if (_sx - _ccx) * _perp[0] + (_sy - _ccy) * _perp[1] < 0:
     _perp = (-_perp[0], -_perp[1])
-ticks_svg = "\n".join(
-    f'<line x1="{_sx + _dxs * f + _perp[0] * o1:.1f}" y1="{_sy + _dys * f + _perp[1] * o1:.1f}" '
-    f'x2="{_sx + _dxs * f + _perp[0] * o2:.1f}" y2="{_sy + _dys * f + _perp[1] * o2:.1f}" '
-    f'stroke="{INK}" stroke-opacity="0.25" stroke-width="2" />'
-    for f in [-60, -40, -20, 20, 40, 60]
-    for o1, o2 in [(20, 34)]
-)
+# Dropped the perpendicular blueprint-style tick marks that used to sit
+# here — one thin black trace reads as more minimal without them; the
+# geometry (_sx/_sy/_perp) stays, since the start/finish marker line below
+# still needs it.
+ticks_svg = ""
 
 # Callouts (dot + leader line + label) — every point, leader endpoint, text
 # position and text-anchor comes straight out of TRACK_CALLOUTS, computed by
@@ -548,9 +546,7 @@ html = f"""<!doctype html>
       <span class="cnr cnr-bl"></span><span class="cnr cnr-br"></span>
       <svg class="track-svg" viewBox="0 0 900 600" xmlns="http://www.w3.org/2000/svg">
         <path id="track" d="{TRACK_PATH_D}"
-              fill="none" stroke="{INK}" stroke-opacity="0.14" stroke-width="26" stroke-linecap="round" stroke-linejoin="round" />
-        <path d="{TRACK_PATH_D}"
-              fill="none" stroke="{BONE}" stroke-width="2" stroke-dasharray="6 6" />
+              fill="none" stroke="{INK}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
         {ticks_svg}
         <line x1="{_sx - _perp[0] * 26:.1f}" y1="{_sy - _perp[1] * 26:.1f}" x2="{_sx + _perp[0] * 26:.1f}" y2="{_sy + _perp[1] * 26:.1f}" stroke="{INK}" stroke-width="4" />
         {callouts_svg}
