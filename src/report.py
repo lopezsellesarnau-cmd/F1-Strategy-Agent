@@ -30,19 +30,21 @@ matplotlib.use("Agg")
 
 fastf1.Cache.enable_cache("data/cache")
 
-# "Industrial spec sheet" chrome (2 sept 2026) — tried two restyles after
-# the original (warm Scandinavian, then black/white + Dross chrome) and
-# neither stuck; reverted the chrome to the first version wholesale. The
-# track itself moved on independently: first replaced the original's
-# placeholder rounded-rectangle with a real Suzuka trace, then swapped that
-# for Miami (this file) — same real-trace method, different circuit, for a
-# new video without touching the model or the chrome.
-BONE = "#F0EEE9"
-INK = "#151412"
-ACCENT = "#C1663D"
-LINE = "rgba(21,20,18,0.16)"
-COMPOUND_COLOR = {"SOFT": "#C1663D", "MEDIUM": "#B8433F", "HARD": "#151412"}
-STRATEGY_COLOR = ["#C1663D", "#B8433F", "#151412", "#5A6B8C", "#3F7A4E"]
+# Scandinavian/Japanese minimalism pass (2 sept 2026) — the "industrial
+# spec sheet" (ticker bar, rotated rail, corner brackets, terracotta ink)
+# gave way to open white space, thin hairline strokes, a serif display face
+# for headings against a plain sans body, and open circle nodes (thin black
+# stroke, coloured fill) instead of solid dots — closer to a technical
+# workflow diagram or a print contact sheet than a spec sheet. Pure white
+# ground, near-black ink, and the five node colours (flag-primary: yellow,
+# red, black, white, blue) are the only colour in the page — everything
+# else is ink at reduced opacity.
+BONE = "#FFFFFF"
+INK = "#111111"
+ACCENT = "#111111"  # no more single warm accent — colour lives in the nodes only
+LINE = "rgba(17,17,17,0.14)"
+COMPOUND_COLOR = {"SOFT": "#D6432A", "MEDIUM": "#F0B429", "HARD": "#111111"}
+STRATEGY_COLOR = ["#F0B429", "#D6432A", "#111111", "#FFFFFF", "#2E5AAC"]
 
 # compound-mean, train=Jeddah+Bahrain, test=Miami (baselinec2.py)
 MAE_BASELINE_V1 = 3.49
@@ -152,7 +154,7 @@ MIAMI_RAW_POINTS = [
 # Suzuka's: by eye against the real trace, for the features a viewer
 # actually recognizes (the stadium infield, the back straight's DRS zone,
 # the fastest corner, a clean straight for start/finish).
-MIAMI_LANDMARK_IDX = {"STADIUM SECTION": 53, "DRS ZONE": 174, "TURN 17": 125, "START / FINISH": 0}
+MIAMI_LANDMARK_IDX = {"Stadium Section": 53, "DRS Zone": 174, "Turn 17": 125, "Start / Finish": 0}
 
 
 def build_track_path(raw_points=MIAMI_RAW_POINTS, landmark_idx=MIAMI_LANDMARK_IDX, vb_w=1100, vb_h=740, margin=44):
@@ -355,7 +357,7 @@ table_rows = "\n".join(
 # the track, table and legend on hover, instead of three static lists that
 # don't know about each other.
 cars_svg = "\n".join(
-    f"""<circle r="9" fill="{color}" stroke="{BONE}" stroke-width="2" class="car" data-strategy="{_slug(name)}">
+    f"""<circle r="9" fill="{color}" stroke="{INK}" stroke-width="1.5" class="car" data-strategy="{_slug(name)}">
         <title>{name} — {results[name] / 60:.1f} min</title>
         <animateMotion dur="{dur:.2f}s" repeatCount="indefinite" rotate="auto">
           <mpath href="#track" />
@@ -379,8 +381,8 @@ legend_html = "\n".join(
 # track — using ESSES for that direction was what made the first pass of
 # these ticks sit at the wrong angle to the actual road) and offset
 # outward from the stroke so they never sit on top of it.
-_sx, _sy = TRACK_CALLOUTS["START / FINISH"]["point"]
-_sf_idx = MIAMI_LANDMARK_IDX["START / FINISH"]
+_sx, _sy = TRACK_CALLOUTS["Start / Finish"]["point"]
+_sf_idx = MIAMI_LANDMARK_IDX["Start / Finish"]
 _tx0, _ty0 = _placed(_sf_idx - 4)
 _tx1, _ty1 = _placed(_sf_idx + 4)
 _dxs, _dys = _tx1 - _tx0, _ty1 - _ty0
@@ -404,15 +406,18 @@ ticks_svg = ""
 # build_track_path()'s fit loop so the label can never land on the road or
 # clip off the canvas (the two bugs in the previous version) regardless of
 # how the track ends up scaled.
+# Open circle (white fill, thin black stroke) instead of a solid dot — same
+# node language as the workflow-diagram reference — with an italic serif
+# label instead of the old mono uppercase tag, thin hairline leader.
 _callout_parts = []
 for _label, _c in TRACK_CALLOUTS.items():
     _px, _py = _c["point"]
     _lx, _ly = _c["leader"]
     _tx, _ty = _c["text"]
     _callout_parts.append(f"""
-  <circle cx="{_px:.1f}" cy="{_py:.1f}" r="3" fill="{ACCENT if _label != "BRIDGE" else INK}" />
-  <line x1="{_px:.1f}" y1="{_py:.1f}" x2="{_lx:.1f}" y2="{_ly:.1f}" stroke="{ACCENT if _label != "BRIDGE" else INK}" stroke-width="1.5" />
-  <text x="{_tx:.1f}" y="{_ty:.1f}" font-family="'IBM Plex Mono', monospace" font-size="13" fill="{INK}" letter-spacing="1" text-anchor="{_c["anchor"]}">{_label}</text>""")
+  <line x1="{_px:.1f}" y1="{_py:.1f}" x2="{_lx:.1f}" y2="{_ly:.1f}" stroke="{INK}" stroke-opacity="0.35" stroke-width="1" />
+  <circle cx="{_px:.1f}" cy="{_py:.1f}" r="4.5" fill="{BONE}" stroke="{INK}" stroke-width="1.3" />
+  <text x="{_tx:.1f}" y="{_ty:.1f}" font-family="'Fraunces', Georgia, serif" font-style="italic" font-size="15" fill="{INK}" text-anchor="{_c["anchor"]}">{_label}</text>""")
 callouts_svg = "\n".join(_callout_parts)
 
 html = f"""<!doctype html>
@@ -421,200 +426,171 @@ html = f"""<!doctype html>
 <meta charset="utf-8" />
 <title>F1 Strategy Agent — model report</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,500;1,400;1,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
   * {{ box-sizing: border-box; }}
   html, body {{ margin: 0; padding: 0; }}
   body {{
     background: {BONE}; color: {INK};
-    font-family: 'IBM Plex Mono', ui-monospace, monospace;
-    letter-spacing: -0.011em;
+    font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    letter-spacing: -0.005em;
+    -webkit-font-smoothing: antialiased;
+  }}
+  .mono {{ font-family: 'IBM Plex Mono', ui-monospace, monospace; letter-spacing: 0; }}
+
+  .page {{ max-width: 980px; margin: 0 auto; padding: 56px 32px 96px; }}
+
+  /* ── Eyebrow tag — a thin bordered pill, the only "chrome" left. ── */
+  .tag {{
+    display: inline-flex; align-items: center; gap: 6px; border: 1px solid {LINE};
+    border-radius: 20px; padding: 4px 12px; font-size: 11px; color: rgba(17,17,17,0.6);
   }}
 
-  /* ── Top ticker — same device as a classified-doc header strip ── */
-  .ticker {{
-    display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;
-    background: {INK}; color: {BONE}; padding: 8px 24px;
-    font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em;
+  .head-row {{ display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; flex-wrap: wrap; margin-top: 20px; }}
+  h1 {{
+    font-family: 'Fraunces', Georgia, serif; font-weight: 500; font-size: 38px;
+    letter-spacing: -0.015em; line-height: 1.15; margin: 0; max-width: 24ch;
   }}
-  .ticker span {{ opacity: 0.85; }}
-
-  .page {{ display: flex; max-width: 1420px; margin: 0 auto; }}
-
-  /* ── Left rail — rotated label, same move as a spec-sheet side band ── */
-  .rail {{
-    writing-mode: vertical-rl; transform: rotate(180deg);
-    background: {ACCENT}; color: {BONE};
-    flex-shrink: 0; width: 44px;
-    display: flex; align-items: center; justify-content: center; gap: 10px;
-    font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; font-weight: 500;
+  .sub {{ color: rgba(17,17,17,0.58); font-size: 14px; margin: 16px 0 0; max-width: 62ch; line-height: 1.6; }}
+  .meta-col {{
+    text-align: right; font-size: 11px; color: rgba(17,17,17,0.42); line-height: 1.7;
+    flex-shrink: 0; padding-top: 6px;
   }}
 
-  .wrap {{ flex: 1; min-width: 0; padding: 28px 32px 96px; }}
-
-  /* ── Header meta bar — mirrors the "P1 INDUSTRIAL ROBOT / SERIAL NO." row ── */
-  .meta-bar {{
-    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
-    border-bottom: 1px solid {INK}; padding-bottom: 10px; margin-bottom: 28px;
-    font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; color: rgba(21,20,18,0.6);
-  }}
-
-  h1 {{ font-size: 24px; font-weight: 500; letter-spacing: -0.01em; margin: 0 0 8px; }}
-  .sub {{ color: rgba(21,20,18,0.62); font-size: 11.5px; margin: 0 0 32px; max-width: 78ch; line-height: 1.55; }}
   h2 {{
-    font-size: 11px; text-transform: uppercase; letter-spacing: 0.16em; font-weight: 500;
-    color: {INK}; margin: 44px 0 14px; border-bottom: 1px solid {INK};
-    padding-bottom: 10px;
+    font-family: 'Fraunces', Georgia, serif; font-style: italic; font-weight: 400;
+    font-size: 15px; color: rgba(17,17,17,0.7); margin: 72px 0 20px;
   }}
 
-  .metric-row {{ display: flex; gap: 0; flex-wrap: wrap; border: 1px solid {INK}; border-right: none; }}
-  .metric {{
-    border-right: 1px solid {INK}; background: #fff; padding: 16px 18px; flex: 1; min-width: 240px;
+  /* ── Metrics — no boxes, just large thin numerals side by side. ── */
+  .metric-row {{ display: flex; gap: 48px; flex-wrap: wrap; }}
+  .metric {{ flex: 1; min-width: 220px; }}
+  .metric .label {{ font-size: 11px; color: rgba(17,17,17,0.5); line-height: 1.5; max-width: 32ch; }}
+  .metric .value {{
+    font-family: 'Fraunces', Georgia, serif; font-size: 34px; font-weight: 400;
+    margin-top: 10px; font-variant-numeric: tabular-nums;
   }}
-  .metric .label {{ font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(21,20,18,0.6); }}
-  .metric .value {{ font-size: 20px; font-weight: 500; margin-top: 10px; font-variant-numeric: tabular-nums; }}
-  .metric.win {{ background: {INK}; }}
-  .metric.win .label {{ color: rgba(240,238,233,0.65); }}
-  .metric.win .value {{ color: {ACCENT}; }}
+  .metric.win .value {{ font-style: italic; }}
 
-  .charts {{ display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }}
-  @media (max-width: 860px) {{ .charts {{ grid-template-columns: 1fr; }} .page {{ flex-direction: column; }} .rail {{ writing-mode: horizontal-tb; transform: none; width: auto; height: 32px; }} }}
-  .chart-label {{
-    font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: rgba(21,20,18,0.6);
-    margin: 0 0 8px; border-top: 1px solid {INK}; padding-top: 8px;
-  }}
-  img {{ width: 100%; border: 1px solid {INK}; background: #fff; display: block; }}
-
-  /* ── Corner-bracket frame — the viewfinder-corner trick from the ref shots ── */
-  .frame {{ position: relative; border: 1px solid {INK}; background: #fff; padding: 24px; }}
-  .cnr {{ position: absolute; width: 16px; height: 16px; pointer-events: none; }}
-  .cnr-tl {{ top: -2px; left: -2px; border-top: 2px solid {ACCENT}; border-left: 2px solid {ACCENT}; }}
-  .cnr-tr {{ top: -2px; right: -2px; border-top: 2px solid {ACCENT}; border-right: 2px solid {ACCENT}; }}
-  .cnr-bl {{ bottom: -2px; left: -2px; border-bottom: 2px solid {ACCENT}; border-left: 2px solid {ACCENT}; }}
-  .cnr-br {{ bottom: -2px; right: -2px; border-bottom: 2px solid {ACCENT}; border-right: 2px solid {ACCENT}; }}
+  .charts {{ display: grid; grid-template-columns: 1fr 1fr; gap: 48px; }}
+  @media (max-width: 720px) {{ .charts {{ grid-template-columns: 1fr; }} .head-row {{ flex-direction: column; }} .meta-col {{ text-align: left; }} }}
+  .chart-label {{ font-size: 11px; color: rgba(17,17,17,0.5); margin: 0 0 12px; }}
+  img {{ width: 100%; background: #fff; display: block; }}
 
   .track-svg {{ width: 100%; height: auto; }}
-  .legend {{ display: flex; flex-wrap: wrap; gap: 18px; margin-top: 18px; padding-top: 14px; border-top: 1px solid {LINE}; font-size: 10.5px; }}
-  .legend-item {{ cursor: default; transition: opacity 0.15s; }}
-  .legend-item:hover {{ opacity: 0.55; }}
-  .legend-item {{ display: flex; align-items: center; gap: 8px; }}
-  .swatch {{ width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0; margin-right: 8px; }}
+  .legend {{ display: flex; flex-wrap: wrap; gap: 20px; margin-top: 24px; font-size: 12px; color: rgba(17,17,17,0.7); }}
+  .legend-item {{ display: flex; align-items: center; gap: 8px; cursor: default; transition: opacity 0.15s; }}
+  .legend-item:hover {{ opacity: 0.5; }}
+  .swatch {{ width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex-shrink: 0; border: 1px solid {INK}; }}
 
-  table {{ width: 100%; border-collapse: collapse; font-size: 11.5px; background: #fff; border: 1px solid {INK}; margin-top: 16px; }}
+  table {{ width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }}
   th {{
-    text-align: left; padding: 10px 14px; background: {INK}; color: {BONE};
-    font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 500;
+    text-align: left; padding: 10px 0; border-bottom: 1px solid {INK};
+    font-size: 11px; color: rgba(17,17,17,0.5); font-weight: 500;
   }}
-  td {{ text-align: left; padding: 10px 14px; border-bottom: 1px solid {LINE}; }}
-  td.num {{ text-align: right; font-variant-numeric: tabular-nums; }}
-  tr.best {{ background: rgba(193,102,61,0.08); font-weight: 500; }}
-  tbody tr {{ cursor: default; transition: background-color 0.15s; }}
-  tbody tr:hover {{ background: rgba(21,20,18,0.045); }}
+  td {{ text-align: left; padding: 12px 0; border-bottom: 1px solid {LINE}; }}
+  td.num {{ text-align: right; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; font-size: 12.5px; }}
+  tr.best td {{ font-weight: 600; }}
+  tbody tr {{ cursor: default; transition: opacity 0.15s; }}
+  tbody tr:hover {{ opacity: 0.55; }}
   .car {{ transition: r 0.15s, opacity 0.15s; }}
   .car.dim {{ opacity: 0.25; }}
   .car.lift {{ r: 12; }}
   .chip {{
-    display: inline-block; font-size: 9px; background: {ACCENT}; color: {BONE};
-    padding: 2px 6px; margin-left: 6px; letter-spacing: 0.08em;
+    display: inline-flex; align-items: center; font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 9.5px; border: 1px solid {INK}; border-radius: 20px;
+    padding: 1px 8px; margin-left: 8px; letter-spacing: 0.04em;
   }}
   footer {{
-    margin-top: 56px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em;
-    color: rgba(21,20,18,0.5); border-top: 1px solid {INK}; padding-top: 12px;
+    margin-top: 80px; font-size: 11px; color: rgba(17,17,17,0.4);
+    border-top: 1px solid {LINE}; padding-top: 16px;
   }}
 </style>
 </head>
 <body>
-<div class="ticker">
-  <span>TRAINED — JEDDAH + BAHRAIN GP 2023</span>
-  <span>F1 STRATEGY AGENT — LAP-TIME MODEL</span>
-  <span>&gt;&gt;&gt; EVALUATED — MIAMI GP 2023</span>
-</div>
-
 <div class="page">
-  <div class="rail">MODEL REPORT</div>
+  <span class="tag mono">F1 Strategy Agent</span>
 
-  <div class="wrap">
-    <div class="meta-bar">
-      <span>F1-Strategy-Agent / src/report.py</span>
-      <span>Source: FastF1 · 2023 season</span>
+  <div class="head-row">
+    <div>
+      <h1>Lap-time model &amp; pit strategy simulation</h1>
+      <p class="sub">A RandomForest model predicts lap time from tyre compound, tyre wear and lap number — trained on two Grand Prix, evaluated on a third it never saw. The result feeds a pit-stop strategy simulation on the test circuit.</p>
     </div>
-
-    <h1>Lap-Time Model &amp; Pit Strategy Simulation</h1>
-    <p class="sub">A RandomForest model predicts lap time from tyre compound, tyre wear and lap number — trained on two Grand Prix, evaluated on a third it never saw. The result feeds a pit-stop strategy simulation on the test circuit.</p>
-
-    <h2>Model performance</h2>
-    <div class="metric-row">
-      <div class="metric">
-        <div class="label">v1 — mean lap time by compound</div>
-        <div class="value">{MAE_BASELINE_V1:.2f}s MAE</div>
-      </div>
-      <div class="metric win">
-        <div class="label">v2 — Compound + TyreLife + LapNumber, delta to circuit baseline</div>
-        <div class="value">{mae_v2:.2f}s MAE</div>
-      </div>
+    <div class="meta-col mono">
+      Trained — Jeddah + Bahrain GP 2023<br />
+      Evaluated — Miami GP 2023<br />
+      Source: FastF1
     </div>
-
-    <h2>Pit strategy simulation — Miami 2023 ({TOTAL_LAPS} laps)</h2>
-    <p class="sub">Assumes the circuit's baseline pace is known ahead of time (e.g. from practice/qualifying — here taken from the real race: {test_baseline:.2f}s). The model only predicts how far each lap drifts from that pace, based on compound and tyre wear. Each car laps the track once, at a speed proportional to its simulated total race time — first one home wins.</p>
-
-    <div class="frame">
-      <span class="cnr cnr-tl"></span><span class="cnr cnr-tr"></span>
-      <span class="cnr cnr-bl"></span><span class="cnr cnr-br"></span>
-      <svg class="track-svg" viewBox="0 0 1100 740" xmlns="http://www.w3.org/2000/svg">
-        <path id="track" d="{TRACK_PATH_D}"
-              fill="none" stroke="{INK}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
-        {ticks_svg}
-        <line x1="{_sx - _perp[0] * 26:.1f}" y1="{_sy - _perp[1] * 26:.1f}" x2="{_sx + _perp[0] * 26:.1f}" y2="{_sy + _perp[1] * 26:.1f}" stroke="{INK}" stroke-width="4" />
-        {callouts_svg}
-        {cars_svg}
-      </svg>
-      <div class="legend">
-        {legend_html}
-      </div>
-    </div>
-
-    <table>
-      <thead><tr><th>Strategy</th><th>Estimated total time</th><th>Gap to best</th></tr></thead>
-      <tbody>
-        {table_rows}
-      </tbody>
-    </table>
-
-    <h2>Charts</h2>
-    <div class="charts">
-      <div>
-        <p class="chart-label">Tyre degradation by compound</p>
-        <img src="data:image/png;base64,{degradation_img}" alt="Degradation by compound" />
-      </div>
-      <div>
-        <p class="chart-label">Predicted vs. actual — Miami 2023</p>
-        <img src="data:image/png;base64,{prediction_img}" alt="Predicted vs actual" />
-      </div>
-    </div>
-
-    <footer>Generated by src/report.py &middot; F1-Strategy-Agent</footer>
-
-    <script>
-      // Hovering a table row or legend item highlights its car on the
-      // track (and dims the rest) — the only bit of interactivity this
-      // static report has, so it stays a plain data-strategy match, no
-      // framework, no state beyond which element the mouse is over.
-      (function () {{
-        var cars = Array.prototype.slice.call(document.querySelectorAll('.car'));
-        function highlight(slug) {{
-          cars.forEach(function (c) {{
-            var on = c.getAttribute('data-strategy') === slug;
-            c.classList.toggle('lift', on);
-            c.classList.toggle('dim', slug && !on);
-          }});
-        }}
-        document.querySelectorAll('[data-strategy]').forEach(function (el) {{
-          if (el.classList.contains('car')) return;
-          el.addEventListener('mouseenter', function () {{ highlight(el.getAttribute('data-strategy')); }});
-          el.addEventListener('mouseleave', function () {{ highlight(null); }});
-        }});
-      }})();
-    </script>
   </div>
+
+  <h2>Model performance</h2>
+  <div class="metric-row">
+    <div class="metric">
+      <div class="label">v1 — mean lap time by compound</div>
+      <div class="value">{MAE_BASELINE_V1:.2f}s <span class="mono" style="font-size:13px;color:rgba(17,17,17,0.45)">MAE</span></div>
+    </div>
+    <div class="metric win">
+      <div class="label">v2 — Compound + TyreLife + LapNumber, delta to circuit baseline</div>
+      <div class="value">{mae_v2:.2f}s <span class="mono" style="font-size:13px;color:rgba(17,17,17,0.45)">MAE</span></div>
+    </div>
+  </div>
+
+  <h2>Pit strategy simulation — Miami 2023, {TOTAL_LAPS} laps</h2>
+  <p class="sub">Assumes the circuit's baseline pace is known ahead of time (e.g. from practice/qualifying — here taken from the real race: {test_baseline:.2f}s). The model only predicts how far each lap drifts from that pace, based on compound and tyre wear. Each car laps the track once, at a speed proportional to its simulated total race time — first one home wins.</p>
+
+  <svg class="track-svg" viewBox="0 0 1100 740" xmlns="http://www.w3.org/2000/svg">
+    <path id="track" d="{TRACK_PATH_D}"
+          fill="none" stroke="{INK}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+    {ticks_svg}
+    <line x1="{_sx - _perp[0] * 26:.1f}" y1="{_sy - _perp[1] * 26:.1f}" x2="{_sx + _perp[0] * 26:.1f}" y2="{_sy + _perp[1] * 26:.1f}" stroke="{INK}" stroke-width="2" />
+    {callouts_svg}
+    {cars_svg}
+  </svg>
+  <div class="legend">
+    {legend_html}
+  </div>
+
+  <table>
+    <thead><tr><th>Strategy</th><th style="text-align:right">Estimated total time</th><th style="text-align:right">Gap to best</th></tr></thead>
+    <tbody>
+      {table_rows}
+    </tbody>
+  </table>
+
+  <h2>Charts</h2>
+  <div class="charts">
+    <div>
+      <p class="chart-label mono">Tyre degradation by compound</p>
+      <img src="data:image/png;base64,{degradation_img}" alt="Degradation by compound" />
+    </div>
+    <div>
+      <p class="chart-label mono">Predicted vs. actual — Miami 2023</p>
+      <img src="data:image/png;base64,{prediction_img}" alt="Predicted vs actual" />
+    </div>
+  </div>
+
+  <footer class="mono">Generated by src/report.py &middot; F1-Strategy-Agent</footer>
+
+  <script>
+    // Hovering a table row or legend item highlights its car on the
+    // track (and dims the rest) — the only bit of interactivity this
+    // static report has, so it stays a plain data-strategy match, no
+    // framework, no state beyond which element the mouse is over.
+    (function () {{
+      var cars = Array.prototype.slice.call(document.querySelectorAll('.car'));
+      function highlight(slug) {{
+        cars.forEach(function (c) {{
+          var on = c.getAttribute('data-strategy') === slug;
+          c.classList.toggle('lift', on);
+          c.classList.toggle('dim', slug && !on);
+        }});
+      }}
+      document.querySelectorAll('[data-strategy]').forEach(function (el) {{
+        if (el.classList.contains('car')) return;
+        el.addEventListener('mouseenter', function () {{ highlight(el.getAttribute('data-strategy')); }});
+        el.addEventListener('mouseleave', function () {{ highlight(null); }});
+      }});
+    }})();
+  </script>
 </div>
 </body>
 </html>
