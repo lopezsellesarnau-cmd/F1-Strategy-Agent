@@ -27,6 +27,13 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error
 
 matplotlib.use("Agg")
+# Match the report's editorial type — matplotlib can't load the HTML page's
+# Google Fonts (Fraunces/IBM Plex Sans), but Helvetica Neue Light is on the
+# system and reads as the same clean, light-weight sans as the rest of the
+# redesign, instead of matplotlib's default DejaVu Sans (a very different,
+# much heavier register that would have stood out against the page).
+matplotlib.rcParams["font.family"] = "Helvetica Neue"
+matplotlib.rcParams["font.weight"] = "light"
 
 fastf1.Cache.enable_cache("data/cache")
 
@@ -85,15 +92,22 @@ def fig_to_base64(fig):
 
 
 def style_ax(ax):
+    """Editorial, not technical: no boxed axes, no tick marks, just faint
+    dotted gridlines (the same device as the track diagram's DIGITAL/
+    ANALOGUE reference lines) and light-grey text — the chart should read
+    as an illustration next to the track, not a default matplotlib plot."""
     ax.set_facecolor(BONE)
-    for spine in ["top", "right"]:
-        ax.spines[spine].set_visible(False)
-    for spine in ["left", "bottom"]:
-        ax.spines[spine].set_color(INK)
-        ax.spines[spine].set_alpha(0.3)
-    ax.tick_params(colors=INK, labelsize=9)
-    ax.xaxis.label.set_color(INK)
-    ax.yaxis.label.set_color(INK)
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+    ax.tick_params(colors="none", length=0, labelsize=9)
+    for label in ax.get_xticklabels() + ax.get_yticklabels():
+        label.set_color((0.17, 0.17, 0.17, 0.5))
+    ax.xaxis.label.set_color((0.17, 0.17, 0.17, 0.68))
+    ax.yaxis.label.set_color((0.17, 0.17, 0.17, 0.68))
+    ax.xaxis.label.set_fontsize(10)
+    ax.yaxis.label.set_fontsize(10)
+    ax.grid(True, axis="both", linestyle=(0, (1, 3)), linewidth=0.8, color=INK, alpha=0.18)
+    ax.set_axisbelow(True)
 
 
 # Miami International Autodrome's real centerline, sampled from the
@@ -283,19 +297,28 @@ for compound in compound_cols:
     rows_feat = features(pd.concat([rows, pd.DataFrame(
         {"Compound": [compound] * len(tyre_life_range)})], axis=1), compound_cols)
     preds = model.predict(rows_feat)
-    ax1.plot(tyre_life_range, preds, label=compound,
-             color=COMPOUND_COLOR.get(compound, INK), linewidth=3, solid_capstyle="round")
+    color = COMPOUND_COLOR.get(compound, INK)
+    ax1.plot(tyre_life_range, preds, color=color, linewidth=1.75, solid_capstyle="round")
+    # Direct end-of-line labels instead of a legend box — one less boxed
+    # element on the page, and it reads the way an editorial chart would.
+    ax1.annotate(
+        compound.title(), xy=(tyre_life_range[-1], preds[-1]),
+        xytext=(6, 0), textcoords="offset points",
+        va="center", fontsize=9.5, fontstyle="italic", color=color,
+    )
+ax1.margins(x=0.12)
 ax1.set_xlabel("Laps on the same tyre set")
 ax1.set_ylabel("Seconds relative to circuit baseline pace")
-ax1.legend(frameon=False, labelcolor=INK, fontsize=9)
 degradation_img = fig_to_base64(fig1)
 
 # ── Chart 2: predicted vs. actual on Miami ──
 fig2, ax2 = plt.subplots(figsize=(6.4, 4))
 style_ax(ax2)
-ax2.scatter(y_test, pred, alpha=0.5, s=20, color=ACCENT, edgecolors="none")
+# The blue node colour, not INK — a scatter in near-black would have read
+# as heavy/technical next to the rest of the page's light touch.
+ax2.scatter(y_test, pred, alpha=0.45, s=16, color=STRATEGY_COLOR[4], edgecolors="none")
 lims = [min(y_test.min(), pred.min()), max(y_test.max(), pred.max())]
-ax2.plot(lims, lims, color=INK, linewidth=1.5, alpha=0.35, linestyle="--")
+ax2.plot(lims, lims, color=INK, linewidth=1, alpha=0.3, linestyle=(0, (1, 3)))
 ax2.set_xlabel("Actual lap time (s)")
 ax2.set_ylabel("Predicted lap time (s)")
 prediction_img = fig_to_base64(fig2)
@@ -345,7 +368,7 @@ def _slug(name):
 
 table_rows = "\n".join(
     f"""<tr{' class="best"' if name == best else ''} data-strategy="{_slug(name)}">
-        <td><span class="swatch" style="background:{color}"></span>{name}{' <span class="chip">BEST</span>' if name == best else ''}</td>
+        <td><span class="swatch" style="background:{color}"></span>{name}{' <span class="chip">best</span>' if name == best else ''}</td>
         <td class="num">{results[name] / 60:.1f} min</td>
         <td class="num">{results[name] - results[best]:+.1f}s</td>
     </tr>"""
@@ -482,24 +505,26 @@ html = f"""<!doctype html>
   .legend-item:hover {{ opacity: 0.5; }}
   .swatch {{ width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex-shrink: 0; border: 1px solid {INK}; }}
 
-  table {{ width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }}
+  table {{ width: 100%; border-collapse: collapse; font-size: 13.5px; margin-top: 12px; }}
   th {{
-    text-align: left; padding: 10px 0; border-bottom: 1px solid {INK};
-    font-size: 11px; color: rgba(17,17,17,0.5); font-weight: 500;
+    text-align: left; padding: 0 0 12px; border-bottom: 1px solid {LINE};
+    font-family: 'Fraunces', Georgia, serif; font-style: italic; font-weight: 400;
+    font-size: 13px; color: rgba(17,17,17,0.55);
   }}
-  td {{ text-align: left; padding: 12px 0; border-bottom: 1px solid {LINE}; }}
+  td {{ text-align: left; padding: 18px 0; border-bottom: 1px solid {LINE}; color: rgba(17,17,17,0.55); }}
   td.num {{ text-align: right; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; font-size: 12.5px; }}
-  tr.best td {{ font-weight: 600; }}
+  tr.best td {{ color: {INK}; }}
+  tr.best td.num {{ font-weight: 500; }}
   tbody tr {{ cursor: default; transition: opacity 0.15s; }}
-  tbody tr:hover {{ opacity: 0.55; }}
+  tbody tr:hover {{ opacity: 0.5; }}
   .car {{ transition: r 0.15s, opacity 0.15s; }}
   .car.dim {{ opacity: 0.25; }}
   .car.lift {{ r: 12; }}
   .chip {{
-    display: inline-flex; align-items: center; font-family: 'IBM Plex Mono', ui-monospace, monospace;
-    font-size: 9.5px; border: 1px solid {INK}; border-radius: 20px;
-    padding: 1px 8px; margin-left: 8px; letter-spacing: 0.04em;
+    font-family: 'Fraunces', Georgia, serif; font-style: italic; font-weight: 400;
+    font-size: 12.5px; color: rgba(17,17,17,0.5); margin-left: 8px;
   }}
+  .chip::before {{ content: "— "; }}
   footer {{
     margin-top: 80px; font-size: 11px; color: rgba(17,17,17,0.4);
     border-top: 1px solid {LINE}; padding-top: 16px;
