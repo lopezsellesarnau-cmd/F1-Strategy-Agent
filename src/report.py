@@ -1,20 +1,18 @@
 """
 v2 model (Compound + TyreLife + LapNumber, RandomForest, trained on the
-DELTA to each circuit's baseline pace) evaluated on Suzuka (Japanese GP)
-after training on Jeddah + Bahrain, plus a simple pit-strategy simulation
-on that same test circuit. Generates a self-contained HTML report (no
-server, no external JS) styled like the portfolio (bone background, ink
-text, terracotta accent, IBM Plex Mono) with an animated track showing the
-simulated strategies racing against each other.
+DELTA to each circuit's baseline pace) evaluated on Miami after training on
+Jeddah + Bahrain, plus a simple pit-strategy simulation on that same test
+circuit. Generates a self-contained HTML report (no server, no external JS)
+styled like the portfolio (bone background, ink text, terracotta accent,
+IBM Plex Mono) with an animated track showing the simulated strategies
+racing against each other.
 
-The track SVG is a real Suzuka silhouette, not a generic rounded blob:
-Suzuka is the only circuit on the calendar that crosses over itself (the
-famous figure-8, via the bridge between the Esses and the back straight),
-so the shape is generated as a lemniscate (figure-8 curve) with the two
-lobes scaled unevenly to match Suzuka's proportions — small tight loop for
-the Esses, one big sweeping loop for Degner/Hairpin/Spoon/130R — instead
-of hand-drawn bezier points, which is what kept "getting worse" (drifting
-into an arbitrary blob) under manual editing. See build_track_path() below.
+The track SVG is a real Miami International Autodrome silhouette, not a
+generic rounded blob: sampled from the actual public track map (see
+MIAMI_RAW_POINTS below) via build_track_path(), the same real-trace method
+used for this project's earlier Suzuka report — a hand-drawn bezier path is
+what caused that one to keep "getting worse" under manual editing, so this
+one is generated from real geometry instead, never hand-tuned.
 """
 
 import matplotlib.pyplot as plt
@@ -32,12 +30,13 @@ matplotlib.use("Agg")
 
 fastf1.Cache.enable_cache("data/cache")
 
-# Back to the original "industrial spec sheet" look (2 sept 2026) — tried
-# two restyles after it (warm Scandinavian, then black/white + Dross chrome)
-# and neither stuck; reverted the chrome to the first version wholesale.
-# The one thing NOT reverted: the track itself, still the real Suzuka trace
-# (build_track_path() / SUZUKA_RAW_POINTS below) evaluated on the actual
-# Japanese GP, not the original's placeholder rounded-rectangle on Miami.
+# "Industrial spec sheet" chrome (2 sept 2026) — tried two restyles after
+# the original (warm Scandinavian, then black/white + Dross chrome) and
+# neither stuck; reverted the chrome to the first version wholesale. The
+# track itself moved on independently: first replaced the original's
+# placeholder rounded-rectangle with a real Suzuka trace, then swapped that
+# for Miami (this file) — same real-trace method, different circuit, for a
+# new video without touching the model or the chrome.
 BONE = "#F0EEE9"
 INK = "#151412"
 ACCENT = "#C1663D"
@@ -95,75 +94,71 @@ def style_ax(ax):
     ax.yaxis.label.set_color(INK)
 
 
-# Suzuka's real centerline, sampled from the public-domain 2005 track map
-# (Wikimedia Commons, "Suzuka circuit map--2005.svg" — traced with
-# Inkscape's "knot" path effect specifically to render the flyover bridge
-# correctly, i.e. this is an actual accurate trace, not an approximation).
-# 221 points, evenly spaced by arc length, in the source file's own local
-# coordinate space (its ancestor <g> transforms already baked in via
-# getScreenCTM() at extraction time — see the F1-Strategy-Agent session
-# notes for the extraction method). A first attempt at this generated a
-# synthetic figure-8 (a lemniscate curve) instead of using real geometry —
-# it crossed itself in the right *topological* place but wasn't Suzuka's
-# actual shape, which is the whole point of naming the circuit.
-SUZUKA_RAW_POINTS = [
-    (727.77, 394.98), (744.56, 400.53), (761.32, 406.16), (778.06, 411.87), (794.76, 417.68),
-    (811.43, 423.6), (828.05, 429.64), (844.62, 435.81), (860.57, 443.25), (872.54, 456.22),
-    (883.08, 470.41), (893.19, 484.93), (903.63, 499.2), (916.45, 510.82), (932.46, 506.35),
-    (934.57, 489.62), (925.84, 474.27), (916.65, 459.16), (907.97, 443.75), (899.6, 428.18),
-    (891.5, 412.46), (884.35, 396.29), (879.35, 379.34), (876.45, 361.91), (877.06, 344.26),
-    (880.51, 326.94), (886.56, 310.33), (893.96, 294.28), (903.27, 279.25), (913.72, 264.99),
-    (924.93, 251.32), (937.39, 238.78), (950.43, 226.84), (964.04, 215.55), (978.3, 205.09),
-    (993.24, 195.63), (1009, 187.63), (1025.43, 181.11), (1042.44, 176.3), (1059.91, 173.58),
-    (1077.53, 172.16), (1095.16, 173.26), (1112.69, 175.62), (1130.16, 178.33), (1147.62, 181.16),
-    (1165.09, 183.87), (1182.62, 186.22), (1200.23, 187.7), (1216.93, 182.36), (1230.57, 171.22),
-    (1240.43, 156.58), (1247.65, 140.45), (1252.5, 123.46), (1254.09, 105.9), (1249.14, 89.1),
-    (1238.32, 75.2), (1222.25, 68.15), (1204.75, 66.34), (1187.33, 69.25), (1170.42, 74.41),
-    (1153.87, 80.62), (1137.37, 87.01), (1120.93, 93.52), (1104.63, 100.37), (1088.52, 107.68),
-    (1072.64, 115.44), (1056.96, 123.63), (1041.38, 132), (1026.05, 140.81), (1011.13, 150.31),
-    (996.56, 160.33), (982.25, 170.72), (968.14, 181.38), (954.2, 192.27), (940.54, 203.49),
-    (927.01, 214.88), (913.46, 226.24), (899.77, 237.44), (886.02, 248.57), (872.27, 259.69),
-    (858.55, 270.85), (844.92, 282.12), (831.36, 293.47), (817.85, 304.88), (804.39, 316.35),
-    (790.99, 327.9), (777.65, 339.5), (764.29, 351.09), (750.93, 362.68), (737.61, 374.31),
-    (724.34, 386), (711.15, 397.78), (698.09, 409.7), (685.92, 422.45), (680.28, 439.14),
-    (676.47, 456.41), (673.81, 473.89), (672.34, 491.51), (672.89, 509.17), (675.23, 526.69),
-    (678.2, 544.13), (681.61, 561.48), (685.26, 578.78), (689.1, 596.05), (693.69, 613.12),
-    (698.51, 630.14), (702.8, 647.29), (705.62, 664.74), (705.9, 682.41), (701.83, 698.77),
-    (684.67, 702.91), (670.86, 712.27), (672.73, 729.78), (674.17, 747.39), (673.13, 765.02),
-    (667.85, 781.82), (659, 797.1), (647.52, 810.5), (633.02, 820.57), (617.56, 829.16),
-    (601.71, 836.99), (585.18, 843.25), (568.11, 847.84), (550.71, 850.96), (533.21, 853.5),
-    (515.7, 856), (498.19, 858.46), (480.67, 860.9), (463.15, 863.33), (445.63, 865.75),
-    (428.12, 868.17), (410.6, 870.6), (393.08, 873.06), (375.57, 875.54), (358.07, 878.05),
-    (340.57, 880.62), (323.09, 883.27), (305.61, 886.01), (288.15, 888.81), (270.7, 891.64),
-    (253.24, 894.47), (235.78, 897.27), (218.3, 900.01), (200.82, 902.67), (183.33, 905.3),
-    (165.84, 907.89), (148.33, 910.41), (130.81, 912.79), (113.26, 915), (95.64, 916.1),
-    (78.08, 914.17), (61.48, 908.22), (46.98, 898.18), (34.38, 885.79), (23.91, 871.57),
-    (18.57, 854.95), (20.72, 837.51), (31.19, 823.44), (46.01, 814.03), (63.38, 811.09),
-    (81.06, 810.54), (98.74, 810.07), (116.42, 809.7), (134.1, 809.31), (151.78, 808.72),
-    (169.43, 807.77), (185.67, 801.12), (198.56, 789.19), (207.13, 773.77), (216.88, 759.2),
-    (231.99, 750.22), (249.35, 747.88), (266.83, 750.18), (283.83, 755.07), (300.79, 760.06),
-    (318.08, 763.72), (335.46, 761.38), (351.16, 753.37), (363.36, 740.72), (372.76, 725.74),
-    (382.5, 710.99), (395.42, 699.03), (411.39, 691.53), (428.71, 688.16), (446.11, 690.13),
-    (461.33, 698.92), (473.01, 712.18), (483.76, 726.21), (494.84, 739.99), (508.03, 751.61),
-    (524.38, 758.28), (541.93, 759.91), (559.08, 756.18), (574.77, 748.04), (589.62, 738.46),
-    (603.38, 727.37), (615.73, 714.71), (626.58, 700.78), (635.64, 685.59), (642.81, 669.46),
-    (646.52, 652.18), (648.95, 634.67), (649.6, 617), (648.19, 599.38), (644.49, 582.11),
-    (638.58, 565.44), (632.39, 548.88), (626.01, 532.38), (619.57, 515.91), (613.33, 499.37),
-    (607.54, 482.66), (607.65, 465.56), (614.56, 449.29), (621.68, 433.1), (629.01, 417.01),
-    (636.59, 401.03), (644.43, 385.17), (657.27, 374.13), (674.33, 377.66), (691.16, 383.07),
-    (707.99, 388.51),
+# Miami International Autodrome's real centerline, sampled from the
+# public-domain Wikimedia Commons track map ("Formula1 Circuit Miami Hard
+# Rock Stadium.svg") the same way as the earlier Suzuka trace: 201 points,
+# evenly spaced by arc length, extracted via the SVG's own
+# getPointAtLength()/getScreenCTM() so the file's transforms are already
+# baked in — not hand-drawn, not approximated. Miami doesn't cross itself
+# like Suzuka does; its real signature is the tight, stop-start infield
+# section around the stadium (the hairpin-heavy loop on one side) against
+# the long DRS back straight on the other — that contrast is what the
+# callouts below are chosen to show.
+MIAMI_RAW_POINTS = [
+    (388.9, 100), (399.87, 106.41), (410.83, 112.83), (421.8, 119.24), (432.77, 125.64),
+    (443.75, 132.04), (454.73, 138.42), (465.67, 144.89), (475.19, 153.22), (475.67, 164.87),
+    (466.5, 173.45), (455.81, 180.29), (448.38, 190.44), (446.39, 202.92), (445.96, 215.62),
+    (443.99, 228.13), (437.49, 238.94), (427.79, 247.09), (416.52, 252.91), (404.51, 257.05),
+    (392.14, 259.9), (379.48, 260.73), (366.78, 260.31), (354.15, 259.15), (341.91, 255.77),
+    (330.25, 250.76), (319.18, 244.52), (308.14, 238.25), (297.09, 231.98), (286.04, 225.7),
+    (275, 219.43), (263.95, 213.15), (252.9, 206.88), (241.86, 200.6), (230.81, 194.33),
+    (218.9, 190.02), (206.3, 188.68), (193.78, 190.6), (182.1, 195.46), (171.79, 202.88),
+    (160.78, 209.15), (148.28, 210.89), (135.73, 209.19), (124.58, 203.3), (115.19, 194.75),
+    (105.85, 186.2), (94.28, 181.1), (81.68, 179.8), (69.07, 181.14), (56.85, 184.58),
+    (45.61, 190.43), (36.32, 199.03), (29.45, 209.64), (27.4, 222.11), (30.88, 234.18),
+    (39.53, 243.26), (52, 244.5), (64.51, 242.39), (77.2, 241.93), (89.83, 243.1),
+    (101.97, 246.78), (114.14, 250.43), (126.52, 253.28), (139.04, 255.4), (151.71, 256.11),
+    (164.41, 256.01), (177.12, 255.84), (189.82, 255.64), (202.52, 255.42), (215.22, 255.2),
+    (227.93, 254.97), (240.63, 254.73), (253.33, 254.5), (266.03, 254.27), (278.73, 254.1),
+    (291.41, 254.9), (303.9, 257.18), (315.98, 261.06), (327.59, 266.21), (339.18, 271.42),
+    (350.86, 276.42), (362.83, 280.63), (375.03, 284.18), (387.49, 286.63), (400.14, 287.8),
+    (412.84, 287.79), (425.53, 287.31), (438.21, 286.52), (450.86, 285.39), (463.48, 283.87),
+    (476.01, 281.83), (488.41, 279.07), (500.5, 275.18), (512.48, 270.95), (524.46, 266.74),
+    (536.45, 262.54), (548.44, 258.33), (560.42, 254.11), (572.39, 249.86), (584.35, 245.56),
+    (596.28, 241.2), (608.16, 236.71), (619.92, 231.89), (631.49, 226.65), (642.98, 221.24),
+    (654.42, 215.71), (665.81, 210.08), (677.13, 204.31), (688.32, 198.3), (698.77, 191.13),
+    (699.53, 179.73), (689.52, 172.05), (678.53, 165.75), (670.13, 156.36), (668.25, 144.01),
+    (673.55, 132.69), (684.82, 127.59), (697.53, 127.56), (710.23, 127.3), (722.28, 123.66),
+    (730.75, 114.44), (736.86, 103.31), (736.48, 92.88), (730.83, 82.92), (734.35, 70.71),
+    (737.39, 58.38), (736.55, 46.27), (724.27, 44.39), (711.57, 43.96), (698.88, 43.51),
+    (686.18, 43.06), (673.48, 42.6), (660.79, 42.14), (648.09, 41.67), (635.4, 41.21),
+    (622.7, 40.74), (610.01, 40.27), (597.31, 39.81), (584.62, 39.34), (571.92, 38.88),
+    (559.22, 38.42), (546.53, 37.97), (533.83, 37.52), (521.14, 37.08), (508.44, 36.72),
+    (495.74, 36.32), (483.04, 35.88), (470.35, 35.42), (457.65, 34.96), (444.96, 34.49),
+    (432.26, 34.02), (419.57, 33.54), (406.87, 33.06), (394.18, 32.58), (381.48, 32.09),
+    (368.79, 31.6), (356.09, 31.11), (343.4, 30.62), (330.7, 30.13), (318.01, 29.63),
+    (305.32, 29.13), (292.62, 28.63), (279.93, 28.13), (267.23, 27.62), (254.54, 27.11),
+    (241.85, 26.6), (229.15, 26.09), (216.46, 25.57), (203.77, 25.05), (191.07, 24.52),
+    (178.38, 23.99), (165.69, 23.44), (153, 22.89), (140.3, 22.32), (127.62, 21.7),
+    (115.38, 23.95), (113.47, 35.05), (122.54, 43.88), (132.91, 51.22), (143.77, 57.81),
+    (155.41, 62.78), (168.01, 64.23), (180.62, 63.04), (192.25, 58.06), (203.24, 51.69),
+    (214.74, 46.3), (226.73, 42.12), (239.17, 39.64), (251.85, 38.88), (264.55, 39.06),
+    (277.16, 40.46), (289.37, 43.93), (301.04, 48.93), (312.18, 55.02), (323.16, 61.42),
+    (334.12, 67.84), (345.08, 74.26), (356.04, 80.69), (367, 87.12), (377.95, 93.56),
+    (388.9, 100),
 ]
 
-# Landmark points, by index into SUZUKA_RAW_POINTS — picked once by eye
-# against the real trace (the corners a viewer actually recognizes: the
-# S-curves, the hairpin's tight reversal, the point the track crosses
-# itself, and a clean straight to hang a start/finish line on).
-SUZUKA_LANDMARK_IDX = {"BRIDGE": 90, "HAIRPIN": 155, "ESSES": 185, "START / FINISH": 135}
+# Landmark points, by index into MIAMI_RAW_POINTS — picked the same way as
+# Suzuka's: by eye against the real trace, for the features a viewer
+# actually recognizes (the stadium infield, the back straight's DRS zone,
+# the fastest corner, a clean straight for start/finish).
+MIAMI_LANDMARK_IDX = {"STADIUM SECTION": 53, "DRS ZONE": 174, "TURN 17": 125, "START / FINISH": 0}
 
 
-def build_track_path(vb_w=900, vb_h=600, margin=34):
-    """Places the real Suzuka trace (SUZUKA_RAW_POINTS) inside a vb_w×vb_h
-    viewBox, self-correcting scale and offset until the combined footprint
+def build_track_path(raw_points=MIAMI_RAW_POINTS, landmark_idx=MIAMI_LANDMARK_IDX, vb_w=900, vb_h=600, margin=34):
+    """Places a real circuit trace (raw_points, defaulting to Miami) inside
+    a vb_w×vb_h viewBox, self-correcting scale and offset until the combined
+    footprint
     of the track *and* its callout labels sits centered with `margin`
     clearance on every side.
 
@@ -178,12 +173,12 @@ def build_track_path(vb_w=900, vb_h=600, margin=34):
     together with the track once the loop shrinks things to fit.
     """
     def place(scale, ox, oy):
-        pts = [(ox + x * scale, oy + y * scale) for x, y in SUZUKA_RAW_POINTS]
+        pts = [(ox + x * scale, oy + y * scale) for x, y in raw_points]
         n = len(pts)
         ccx = sum(p[0] for p in pts) / n
         ccy = sum(p[1] for p in pts) / n
         callouts = {}
-        for label, idx in SUZUKA_LANDMARK_IDX.items():
+        for label, idx in landmark_idx.items():
             px, py = pts[idx]
             dx, dy = px - ccx, py - ccy
             dl = math.hypot(dx, dy) or 1
@@ -214,8 +209,8 @@ def build_track_path(vb_w=900, vb_h=600, margin=34):
             y0, y1 = min(y0, tb[1]), max(y1, tb[3])
         return x0, x1, y0, y1
 
-    xs0 = [p[0] for p in SUZUKA_RAW_POINTS]
-    ys0 = [p[1] for p in SUZUKA_RAW_POINTS]
+    xs0 = [p[0] for p in raw_points]
+    ys0 = [p[1] for p in raw_points]
     w0, h0 = max(xs0) - min(xs0), max(ys0) - min(ys0)
     scale = min((vb_w - 2 * margin) / w0, (vb_h - 2 * margin) / h0) * 0.72
     ox, oy = 0.0, 0.0
@@ -247,17 +242,17 @@ TRACK_PATH_D, TRACK_CALLOUTS, TRACK_SCALE, TRACK_OX, TRACK_OY = build_track_path
 
 
 def _placed(idx):
-    """A raw Suzuka point, mapped through the same scale/offset the fit
+    """A raw Miami track point, mapped through the same scale/offset the fit
     loop converged on — for anything (like the tick marks) that needs a
     point *near* a landmark rather than exactly on it."""
-    x, y = SUZUKA_RAW_POINTS[idx % len(SUZUKA_RAW_POINTS)]
+    x, y = MIAMI_RAW_POINTS[idx % len(MIAMI_RAW_POINTS)]
     return TRACK_OX + x * TRACK_SCALE, TRACK_OY + y * TRACK_SCALE
 
 
 print("Loading races...")
 jeddah_df, jeddah_baseline = load_race(2023, "Jeddah")
 bahrain_df, bahrain_baseline = load_race(2023, "Bahrain")
-test_df, test_baseline = load_race(2023, "Japan")
+test_df, test_baseline = load_race(2023, "Miami")
 train_df = pd.concat([jeddah_df, bahrain_df], ignore_index=True)
 
 compound_cols = sorted(train_df["Compound"].unique())
@@ -293,7 +288,7 @@ ax1.set_ylabel("Seconds relative to circuit baseline pace")
 ax1.legend(frameon=False, labelcolor=INK, fontsize=9)
 degradation_img = fig_to_base64(fig1)
 
-# ── Chart 2: predicted vs. actual on Suzuka ──
+# ── Chart 2: predicted vs. actual on Miami ──
 fig2, ax2 = plt.subplots(figsize=(6.4, 4))
 style_ax(ax2)
 ax2.scatter(y_test, pred, alpha=0.4, s=14, color=ACCENT, edgecolors="none")
@@ -303,7 +298,7 @@ ax2.set_xlabel("Actual lap time (s)")
 ax2.set_ylabel("Predicted lap time (s)")
 prediction_img = fig_to_base64(fig2)
 
-# ── Pit strategy simulation on Suzuka (53 laps) ──
+# ── Pit strategy simulation on Miami (57 laps) ──
 TOTAL_LAPS = int(test_df["LapNumber"].max())
 
 strategies = {
@@ -377,7 +372,7 @@ legend_html = "\n".join(
 # these ticks sit at the wrong angle to the actual road) and offset
 # outward from the stroke so they never sit on top of it.
 _sx, _sy = TRACK_CALLOUTS["START / FINISH"]["point"]
-_sf_idx = SUZUKA_LANDMARK_IDX["START / FINISH"]
+_sf_idx = MIAMI_LANDMARK_IDX["START / FINISH"]
 _tx0, _ty0 = _placed(_sf_idx - 4)
 _tx1, _ty1 = _placed(_sf_idx + 4)
 _dxs, _dys = _tx1 - _tx0, _ty1 - _ty0
@@ -518,7 +513,7 @@ html = f"""<!doctype html>
 <div class="ticker">
   <span>TRAINED — JEDDAH + BAHRAIN GP 2023</span>
   <span>F1 STRATEGY AGENT — LAP-TIME MODEL</span>
-  <span>&gt;&gt;&gt; EVALUATED — JAPANESE GP 2023</span>
+  <span>&gt;&gt;&gt; EVALUATED — MIAMI GP 2023</span>
 </div>
 
 <div class="page">
@@ -545,7 +540,7 @@ html = f"""<!doctype html>
       </div>
     </div>
 
-    <h2>Pit strategy simulation — Suzuka 2023 ({TOTAL_LAPS} laps)</h2>
+    <h2>Pit strategy simulation — Miami 2023 ({TOTAL_LAPS} laps)</h2>
     <p class="sub">Assumes the circuit's baseline pace is known ahead of time (e.g. from practice/qualifying — here taken from the real race: {test_baseline:.2f}s). The model only predicts how far each lap drifts from that pace, based on compound and tyre wear. Each car laps the track once, at a speed proportional to its simulated total race time — first one home wins.</p>
 
     <div class="frame">
@@ -580,7 +575,7 @@ html = f"""<!doctype html>
         <img src="data:image/png;base64,{degradation_img}" alt="Degradation by compound" />
       </div>
       <div>
-        <p class="chart-label">Predicted vs. actual — Suzuka 2023</p>
+        <p class="chart-label">Predicted vs. actual — Miami 2023</p>
         <img src="data:image/png;base64,{prediction_img}" alt="Predicted vs actual" />
       </div>
     </div>
