@@ -155,7 +155,7 @@ MIAMI_RAW_POINTS = [
 MIAMI_LANDMARK_IDX = {"STADIUM SECTION": 53, "DRS ZONE": 174, "TURN 17": 125, "START / FINISH": 0}
 
 
-def build_track_path(raw_points=MIAMI_RAW_POINTS, landmark_idx=MIAMI_LANDMARK_IDX, vb_w=900, vb_h=600, margin=34):
+def build_track_path(raw_points=MIAMI_RAW_POINTS, landmark_idx=MIAMI_LANDMARK_IDX, vb_w=1100, vb_h=740, margin=44):
     """Places a real circuit trace (raw_points, defaulting to Miami) inside
     a vb_w×vb_h viewBox, self-correcting scale and offset until the combined
     footprint
@@ -282,7 +282,7 @@ for compound in compound_cols:
         {"Compound": [compound] * len(tyre_life_range)})], axis=1), compound_cols)
     preds = model.predict(rows_feat)
     ax1.plot(tyre_life_range, preds, label=compound,
-             color=COMPOUND_COLOR.get(compound, INK), linewidth=2)
+             color=COMPOUND_COLOR.get(compound, INK), linewidth=3, solid_capstyle="round")
 ax1.set_xlabel("Laps on the same tyre set")
 ax1.set_ylabel("Seconds relative to circuit baseline pace")
 ax1.legend(frameon=False, labelcolor=INK, fontsize=9)
@@ -291,9 +291,9 @@ degradation_img = fig_to_base64(fig1)
 # ── Chart 2: predicted vs. actual on Miami ──
 fig2, ax2 = plt.subplots(figsize=(6.4, 4))
 style_ax(ax2)
-ax2.scatter(y_test, pred, alpha=0.4, s=14, color=ACCENT, edgecolors="none")
+ax2.scatter(y_test, pred, alpha=0.5, s=20, color=ACCENT, edgecolors="none")
 lims = [min(y_test.min(), pred.min()), max(y_test.max(), pred.max())]
-ax2.plot(lims, lims, color=INK, linewidth=1, alpha=0.4, linestyle="--")
+ax2.plot(lims, lims, color=INK, linewidth=1.5, alpha=0.35, linestyle="--")
 ax2.set_xlabel("Actual lap time (s)")
 ax2.set_ylabel("Predicted lap time (s)")
 prediction_img = fig_to_base64(fig2)
@@ -338,8 +338,11 @@ for i, (name, total) in enumerate(results.items()):
     dur = BASE_DURATION * (total / fastest_time)
     car_rows.append((name, total, color, dur))
 
+def _slug(name):
+    return "".join(c if c.isalnum() else "-" for c in name).strip("-").lower()
+
 table_rows = "\n".join(
-    f"""<tr{' class="best"' if name == best else ''}>
+    f"""<tr{' class="best"' if name == best else ''} data-strategy="{_slug(name)}">
         <td><span class="swatch" style="background:{color}"></span>{name}{' <span class="chip">BEST</span>' if name == best else ''}</td>
         <td class="num">{results[name] / 60:.1f} min</td>
         <td class="num">{results[name] - results[best]:+.1f}s</td>
@@ -347,8 +350,13 @@ table_rows = "\n".join(
     for name, total, color, dur in car_rows
 )
 
+# Each car and its matching row/legend item share a data-strategy slug — a
+# small script (below the SVG) uses that to highlight one strategy across
+# the track, table and legend on hover, instead of three static lists that
+# don't know about each other.
 cars_svg = "\n".join(
-    f"""<circle r="9" fill="{color}" stroke="{BONE}" stroke-width="2">
+    f"""<circle r="9" fill="{color}" stroke="{BONE}" stroke-width="2" class="car" data-strategy="{_slug(name)}">
+        <title>{name} — {results[name] / 60:.1f} min</title>
         <animateMotion dur="{dur:.2f}s" repeatCount="indefinite" rotate="auto">
           <mpath href="#track" />
         </animateMotion>
@@ -357,7 +365,7 @@ cars_svg = "\n".join(
 )
 
 legend_html = "\n".join(
-    f"""<div class="legend-item">
+    f"""<div class="legend-item" data-strategy="{_slug(name)}">
         <span class="swatch" style="background:{color}"></span>
         <span>{name}</span>
       </div>"""
@@ -450,8 +458,8 @@ html = f"""<!doctype html>
     font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; color: rgba(21,20,18,0.6);
   }}
 
-  h1 {{ font-size: 34px; font-weight: 500; letter-spacing: -0.015em; margin: 0 0 8px; }}
-  .sub {{ color: rgba(21,20,18,0.62); font-size: 13px; margin: 0 0 32px; max-width: 78ch; line-height: 1.5; }}
+  h1 {{ font-size: 24px; font-weight: 500; letter-spacing: -0.01em; margin: 0 0 8px; }}
+  .sub {{ color: rgba(21,20,18,0.62); font-size: 11.5px; margin: 0 0 32px; max-width: 78ch; line-height: 1.55; }}
   h2 {{
     font-size: 11px; text-transform: uppercase; letter-spacing: 0.16em; font-weight: 500;
     color: {INK}; margin: 44px 0 14px; border-bottom: 1px solid {INK};
@@ -463,7 +471,7 @@ html = f"""<!doctype html>
     border-right: 1px solid {INK}; background: #fff; padding: 16px 18px; flex: 1; min-width: 240px;
   }}
   .metric .label {{ font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(21,20,18,0.6); }}
-  .metric .value {{ font-size: 28px; font-weight: 500; margin-top: 10px; font-variant-numeric: tabular-nums; }}
+  .metric .value {{ font-size: 20px; font-weight: 500; margin-top: 10px; font-variant-numeric: tabular-nums; }}
   .metric.win {{ background: {INK}; }}
   .metric.win .label {{ color: rgba(240,238,233,0.65); }}
   .metric.win .value {{ color: {ACCENT}; }}
@@ -485,11 +493,13 @@ html = f"""<!doctype html>
   .cnr-br {{ bottom: -2px; right: -2px; border-bottom: 2px solid {ACCENT}; border-right: 2px solid {ACCENT}; }}
 
   .track-svg {{ width: 100%; height: auto; }}
-  .legend {{ display: flex; flex-wrap: wrap; gap: 18px; margin-top: 18px; padding-top: 14px; border-top: 1px solid {LINE}; font-size: 12px; }}
+  .legend {{ display: flex; flex-wrap: wrap; gap: 18px; margin-top: 18px; padding-top: 14px; border-top: 1px solid {LINE}; font-size: 10.5px; }}
+  .legend-item {{ cursor: default; transition: opacity 0.15s; }}
+  .legend-item:hover {{ opacity: 0.55; }}
   .legend-item {{ display: flex; align-items: center; gap: 8px; }}
   .swatch {{ width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0; margin-right: 8px; }}
 
-  table {{ width: 100%; border-collapse: collapse; font-size: 13px; background: #fff; border: 1px solid {INK}; margin-top: 16px; }}
+  table {{ width: 100%; border-collapse: collapse; font-size: 11.5px; background: #fff; border: 1px solid {INK}; margin-top: 16px; }}
   th {{
     text-align: left; padding: 10px 14px; background: {INK}; color: {BONE};
     font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 500;
@@ -497,6 +507,11 @@ html = f"""<!doctype html>
   td {{ text-align: left; padding: 10px 14px; border-bottom: 1px solid {LINE}; }}
   td.num {{ text-align: right; font-variant-numeric: tabular-nums; }}
   tr.best {{ background: rgba(193,102,61,0.08); font-weight: 500; }}
+  tbody tr {{ cursor: default; transition: background-color 0.15s; }}
+  tbody tr:hover {{ background: rgba(21,20,18,0.045); }}
+  .car {{ transition: r 0.15s, opacity 0.15s; }}
+  .car.dim {{ opacity: 0.25; }}
+  .car.lift {{ r: 12; }}
   .chip {{
     display: inline-block; font-size: 9px; background: {ACCENT}; color: {BONE};
     padding: 2px 6px; margin-left: 6px; letter-spacing: 0.08em;
@@ -544,9 +559,9 @@ html = f"""<!doctype html>
     <div class="frame">
       <span class="cnr cnr-tl"></span><span class="cnr cnr-tr"></span>
       <span class="cnr cnr-bl"></span><span class="cnr cnr-br"></span>
-      <svg class="track-svg" viewBox="0 0 900 600" xmlns="http://www.w3.org/2000/svg">
+      <svg class="track-svg" viewBox="0 0 1100 740" xmlns="http://www.w3.org/2000/svg">
         <path id="track" d="{TRACK_PATH_D}"
-              fill="none" stroke="{INK}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+              fill="none" stroke="{INK}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
         {ticks_svg}
         <line x1="{_sx - _perp[0] * 26:.1f}" y1="{_sy - _perp[1] * 26:.1f}" x2="{_sx + _perp[0] * 26:.1f}" y2="{_sy + _perp[1] * 26:.1f}" stroke="{INK}" stroke-width="4" />
         {callouts_svg}
@@ -577,6 +592,28 @@ html = f"""<!doctype html>
     </div>
 
     <footer>Generated by src/report.py &middot; F1-Strategy-Agent</footer>
+
+    <script>
+      // Hovering a table row or legend item highlights its car on the
+      // track (and dims the rest) — the only bit of interactivity this
+      // static report has, so it stays a plain data-strategy match, no
+      // framework, no state beyond which element the mouse is over.
+      (function () {{
+        var cars = Array.prototype.slice.call(document.querySelectorAll('.car'));
+        function highlight(slug) {{
+          cars.forEach(function (c) {{
+            var on = c.getAttribute('data-strategy') === slug;
+            c.classList.toggle('lift', on);
+            c.classList.toggle('dim', slug && !on);
+          }});
+        }}
+        document.querySelectorAll('[data-strategy]').forEach(function (el) {{
+          if (el.classList.contains('car')) return;
+          el.addEventListener('mouseenter', function () {{ highlight(el.getAttribute('data-strategy')); }});
+          el.addEventListener('mouseleave', function () {{ highlight(null); }});
+        }});
+      }})();
+    </script>
   </div>
 </div>
 </body>
